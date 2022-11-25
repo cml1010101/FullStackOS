@@ -1,0 +1,6 @@
+*.o
+*.elf
+*.efi
+*.so
+*.img
+*.json
