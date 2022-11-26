@@ -13,6 +13,7 @@ public:
     PageDirectory();
     void mapPage(uint64_t virt, uint64_t phys, uint64_t flags);
     void map(uint64_t virt, uint64_t phys, size_t pages, size_t flags);
+    PageDirectory* clone();
 };
 void initializeMMU(void* memoryMap, size_t memoryMapSize, size_t descriptorSize);
 #endif

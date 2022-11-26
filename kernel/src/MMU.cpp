@@ -214,3 +214,45 @@ void initializeMMU(void* memoryMap, size_t memoryMapSize, size_t descriptorSize)
     }
     switchDirectory(kernelDirectory);
 }
+PageDirectory* PageDirectory::clone()
+{
+    PageDirectory* directory = (PageDirectory*)kmalloc_a(sizeof(PageDirectory));
+    for (size_t i = 0; i < 512; i++)
+    {
+        if (pml4[i] & MMU_PRESENT)
+        {
+            uint64_t* pdpt = (uint64_t*)(pml4[i] & MMU_ADDR);
+            uint64_t* pdptNew = (uint64_t*)(directory->pml4[i] & MMU_ADDR);
+            for (size_t j = 0; j < 512; j++)
+            {
+                if (pdpt[j] & MMU_PRESENT)
+                {
+                    uint64_t* pd = (uint64_t*)(pdpt[j] & MMU_ADDR);
+                    uint64_t* pdNew = (uint64_t*)(pdptNew[j] & MMU_ADDR);
+                    for (size_t k = 0; k < 512; k++)
+                    {
+                        if (pd[k] & MMU_PRESENT)
+                        {
+                            uint64_t* pt = (uint64_t*)(pd[k] & MMU_ADDR);
+                            uint64_t* ptNew = (uint64_t*)(pdNew[k] & MMU_ADDR);
+                            memcpy(ptNew, pt, 0x1000);
+                        }
+                        else
+                        {
+                            pdNew[k] = 0;
+                        }
+                    }
+                }
+                else
+                {
+                    pdptNew[j] = 0;
+                }
+            }
+        }
+        else
+        {
+            directory->pml4[i] = 0;
+        }
+    }
+    return directory;
+}
