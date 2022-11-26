@@ -28,6 +28,8 @@ char* uitoa(size_t num, size_t base);
 void memset(void* dest, uint8_t val, size_t count);
 void memcpy(void* dest, const void* src, size_t count);
 int memcmp(const void* a, const void* b, size_t count);
+void* malloc(size_t size);
+void free(void* ptr);
 #ifdef __cplusplus
 }
 struct __attribute__((packed)) SystemPointer
