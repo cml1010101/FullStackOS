@@ -40,6 +40,7 @@ void memcpy(void* dest, const void* src, size_t count);
 int memcmp(const void* a, const void* b, size_t count);
 void* malloc(size_t size);
 void free(void* ptr);
+void sleep(uint64_t millis);
 #ifdef __cplusplus
 }
 struct __attribute__((packed)) SystemPointer
@@ -130,5 +131,24 @@ public:
         return length;
     }
 };
+class Driver
+{
+public:
+    Driver() = default;
+    virtual const char* getName() = 0;
+};
+void registerDriver(Driver* driver);
+extern Vector<Driver*> drivers;
+class StorageDevice
+{
+public:
+    StorageDevice() = default;
+    virtual const char* getName() = 0;
+    virtual const char* getType() = 0;
+    virtual void readSectors(uint64_t lba, void* dest, size_t sectors) = 0;
+    virtual void writeSectors(uint64_t lba, const void* src, size_t sectors) = 0;
+};
+extern Vector<StorageDevice*> storageDevices;
+void registerStorageDevice(StorageDevice* device);
 #endif
 #endif

@@ -171,3 +171,16 @@ extern "C" int memcmp(const void* a, const void* b, size_t len)
     }
     return 0;
 }
+extern "C" void __cxa_pure_virtual()
+{
+}
+Vector<Driver*> drivers;
+void registerDriver(Driver* driver)
+{
+    drivers.push(driver);
+}
+Vector<StorageDevice*> storageDevices;
+void registerStorageDevice(StorageDevice* device)
+{
+    storageDevices.push(device);
+}

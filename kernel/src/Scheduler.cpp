@@ -1,7 +1,8 @@
 #include <Scheduler.h>
 Thread* running;
 Thread* queue;
-size_t scheduledCounter, nextPID;
+volatile size_t scheduledCounter;
+size_t nextPID;
 extern PageDirectory* kernelDirectory;
 void _kill()
 {
@@ -47,7 +48,7 @@ find_thread:
         {
             running->joined = false;
         }
-        else goto find_thread;
+        else if (running != queue) goto find_thread;
     }
     if (running->asleep)
     {
@@ -55,7 +56,7 @@ find_thread:
         {
             running->asleep = false;
         }
-        else goto find_thread;
+        else if (running != queue) goto find_thread;
     }
     if (running->done) goto find_thread;
     scheduledCounter++;
@@ -87,4 +88,10 @@ void initializeScheduler()
     running->heap = (Heap*)kmalloc(sizeof(Heap));
     *running->heap = Heap(0x10000);
     running->next = NULL;
+}
+extern "C" void sleep(uint64_t millis)
+{
+    running->sleepTimeout = millis + scheduledCounter;
+    running->asleep = true;
+    while (running->sleepTimeout > scheduledCounter);
 }

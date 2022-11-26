@@ -14,6 +14,7 @@ public:
     uint8_t getSubclass();
     uint8_t getProgIF();
     uint8_t getHeaderType();
+    uint32_t getBar(size_t bar);
 };
 extern Vector<PCIDevice> pciDevices;
 void initializePCI();
