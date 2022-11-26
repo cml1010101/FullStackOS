@@ -6,6 +6,7 @@
 #include <MMU.h>
 #include <Heap.h>
 #include <Scheduler.h>
+#include <PCI.h>
 struct BootData
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -14,6 +15,16 @@ struct BootData
     size_t mapSize;
     size_t descriptorSize;
 };
+#ifdef __DEBUG__
+extern "C" void other_main()
+{
+    qemu_printf("Hello from other main\n");
+    for (size_t i = 0; i < 200; i++)
+    {
+        qemu_printf("OTHER_MAIN: %d\n", i);
+    }
+}
+#endif
 extern "C" void kernel_main(BootData data)
 {
     asm volatile ("cli");
@@ -46,7 +57,14 @@ extern "C" void kernel_main(BootData data)
     initializeScheduler();
 #ifdef __DEBUG__
     qemu_printf("Initialized Scheduler.\n");
-#endif
+    Thread thread = Thread(other_main, "OTHER_MAIN");
+    addThread(&thread);
     asm volatile ("sti");
+    for (size_t i = 0; i < 200; i++)
+    {
+        qemu_printf("KERNEL_MAIN: %d\n", i);
+    }
+#endif
+    initializePCI();
     for (;;);
 }

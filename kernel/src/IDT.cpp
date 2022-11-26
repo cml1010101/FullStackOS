@@ -1,4 +1,5 @@
 #include <IDT.h>
+#include <Scheduler.h>
 extern "C" void isr0();
 extern "C" void isr1();
 extern "C" void isr2();
@@ -175,11 +176,17 @@ const char* isrMessages[] = {
     "Reserved",
     "Reserved"
 };
+extern Thread* queue;
 extern "C" void isr_handler(CPURegisters* regs)
 {
     SystemPointer idtAddr, gdtAddr;
 #ifdef __DEBUG__
     qemu_printf("[0x%x]: %s(0x%x)\n", regs->rip, isrMessages[regs->num], regs->code);
 #endif
+    if (running != queue)
+    {
+        running->done = true;
+        asm volatile ("sti");
+    }
     for (;;);
 }
