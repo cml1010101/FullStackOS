@@ -9,7 +9,8 @@
 extern "C"
 {
 #endif
-#ifdef DEBUG
+#ifdef __DEBUG__
+void qemu_init();
 void qemu_printf(const char* frmt, ...);
 #endif
 inline uint8_t inb(uint16_t port)
@@ -22,7 +23,14 @@ inline void outb(uint16_t port, uint8_t data)
 {
     asm volatile("out %%al, %%dx": : "a"(data), "d"(port));
 }
+char* itoa(int num, size_t base);
+char* uitoa(size_t num, size_t base);
 #ifdef __cplusplus
 }
+struct __attribute__((packed)) SystemPointer
+{
+    uint16_t limit;
+    uint64_t base;
+};
 #endif
 #endif

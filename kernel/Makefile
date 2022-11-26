@@ -13,10 +13,10 @@ kernel.elf: ${OBJS}
 %.o: %.cpp
 	g++ -c $< -o $@ -Iinclude -fPIC -I/usr/include/efi -I/usr/include/efi/x86_64 \
 		-fno-stack-protector -D_GLIBCXX_USE_CXX11_ABI=0 -fshort-wchar -fno-exceptions \
-		-Wall -Wextra -g -fno-rtti -DDEBUG
+		-Wall -Wextra -g -fno-rtti -D__DEBUG__
 %.o: %.c
 	gcc -c $< -o $@ -Iinclude -fPIC -I/usr/include/efi -I/usr/include/efi/x86_64 \
-		-fno-stack-protector -fshort-wchar -fno-exceptions -Wall -Wextra -g -DDEBUG
+		-fno-stack-protector -fshort-wchar -fno-exceptions -Wall -Wextra -g -D__DEBUG__
 %.o: %.asm
 	nasm $< -o $@ -f elf64
 %.o: %.psf

@@ -1,0 +1,7 @@
+#include <CPU.h>
+GDT gdt;
+void initializeGDT()
+{
+    gdt = GDT();
+    gdt.load(0x8, 0x10, 0x10, 0x10, 0x10, 0x10);
+}
