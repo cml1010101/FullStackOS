@@ -97,9 +97,6 @@ uint64_t kmallocPage()
 }
 void switchDirectory(PageDirectory* dir)
 {
-#ifdef __DEBUG__
-    qemu_printf("Directory is at 0x%x\n", dir);
-#endif
     currentDirectory = dir;
     asm volatile ("mov %0, %%cr3":: "r"(dir));
 }
@@ -222,18 +219,24 @@ PageDirectory* PageDirectory::clone()
         if (pml4[i] & MMU_PRESENT)
         {
             uint64_t* pdpt = (uint64_t*)(pml4[i] & MMU_ADDR);
+            uint64_t pdptPhys = kmalloc_a(0x1000);
+            directory->pml4[i] = pdptPhys | MMU_RW | MMU_PRESENT;
             uint64_t* pdptNew = (uint64_t*)(directory->pml4[i] & MMU_ADDR);
             for (size_t j = 0; j < 512; j++)
             {
                 if (pdpt[j] & MMU_PRESENT)
                 {
                     uint64_t* pd = (uint64_t*)(pdpt[j] & MMU_ADDR);
+                    uint64_t pdPhys = kmalloc_a(0x1000);
+                    pdptNew[j] = pdPhys | MMU_RW | MMU_PRESENT;
                     uint64_t* pdNew = (uint64_t*)(pdptNew[j] & MMU_ADDR);
                     for (size_t k = 0; k < 512; k++)
                     {
                         if (pd[k] & MMU_PRESENT)
                         {
                             uint64_t* pt = (uint64_t*)(pd[k] & MMU_ADDR);
+                            uint64_t ptPhys = kmalloc_a(0x1000);
+                            pdNew[k] = ptPhys | MMU_RW | MMU_PRESENT;
                             uint64_t* ptNew = (uint64_t*)(pdNew[k] & MMU_ADDR);
                             memcpy(ptNew, pt, 0x1000);
                         }

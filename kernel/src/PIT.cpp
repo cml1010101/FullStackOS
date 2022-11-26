@@ -1,8 +1,10 @@
 #include <PIT.h>
 #include <IRQ.h>
+#include <Scheduler.h>
 size_t counter;
 void pitHandler(CPURegisters* regs)
 {
+    schedule(regs);
     counter++;
 }
 void initializePIT(size_t frequency)

@@ -5,6 +5,7 @@
 #include <PIT.h>
 #include <MMU.h>
 #include <Heap.h>
+#include <Scheduler.h>
 struct BootData
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -41,6 +42,10 @@ extern "C" void kernel_main(BootData data)
     size_t* ls = new size_t[5];
     qemu_printf("Initialized Heap.\n");
     qemu_printf("Address of ls: 0x%x\n", ls);
+#endif
+    initializeScheduler();
+#ifdef __DEBUG__
+    qemu_printf("Initialized Scheduler.\n");
 #endif
     asm volatile ("sti");
     for (;;);

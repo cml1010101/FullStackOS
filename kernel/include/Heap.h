@@ -21,6 +21,7 @@ public:
     void* malloc(size_t size);
     void free(void* ptr);
 };
+void setCurrentHeap(Heap* heap);
 void initializeHeap();
 #endif
 #endif
