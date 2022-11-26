@@ -215,6 +215,15 @@ const char* IDEDriver::getName()
 {
     return "IDE Driver";
 }
+void waitIDEIRQ()
+{
+    while (!ideIRQInvoked);
+    ideIRQInvoked = 0;
+}
+void ideIRQ()
+{
+    ideIRQInvoked = 1;
+}
 void IDEDevice::readSectors(uint64_t lba, void* dest, size_t numSectors)
 {
     if (numSectors > 256)
@@ -231,9 +240,9 @@ void IDEDevice::readSectors(uint64_t lba, void* dest, size_t numSectors)
     }
     else
     {
+        uint8_t sectors = numSectors & 0xFF;
         if (type == IDE_ATA)
         {
-            uint8_t sectors = numSectors & 0xFF;
             uint8_t mode;
             uint8_t io[6];
             uint8_t head, cyl, sect;
@@ -299,6 +308,37 @@ void IDEDevice::readSectors(uint64_t lba, void* dest, size_t numSectors)
             if (mode == 2) cmd = ATA_CMD_CACHE_FLUSH_EXT;
             channel->write(ATA_REG_COMMAND, cmd);
             channel->poll(false);
+        }
+        else
+        {
+            channel->write(ATA_REG_CONTROL, channel->nInterrupt = ideIRQInvoked = 0x0);
+            uint8_t packet[12];
+            packet[0] = ATAPI_CMD_READ;
+            packet[1] = 0;
+            packet[2] = (lba >> 24) & 0xFF;
+            packet[3] = (lba >> 16) & 0xFF;
+            packet[4] = (lba >> 8) & 0xFF;
+            packet[5] = lba & 0xFF;
+            packet[6] = 0;
+            packet[7] = 0;
+            packet[8] = 0;
+            packet[9] = sectors;
+            packet[10] = 0;
+            packet[11] = 0;
+            channel->write(ATA_REG_HDDEVSEL, drive << 4);
+            for (size_t i = 0; i < 4; i++) channel->read(ATA_REG_ALTSTATUS);
+            channel->write(ATA_REG_FEATURES, 0);
+            channel->write(ATA_REG_LBA1, 2048 & 0xFF);
+            channel->write(ATA_REG_LBA2, (2048 >> 8) & 0xFF);
+            channel->write(ATA_REG_COMMAND, ATA_CMD_PACKET);
+            asm volatile ("rep outsw":: "c"(6), "d"(channel->base), "S"(packet));
+            for (size_t i = 0; i < sectors; i++)
+            {
+                waitIDEIRQ();
+                asm volatile ("rep insw":: "c"(1024), "d"(channel->base), "D"(dest + i * 2048));
+            }
+            waitIDEIRQ();
+            while (channel->read(ATA_REG_STATUS) & (ATA_SR_BSY | ATA_SR_DRQ));
         }
     }
 }
