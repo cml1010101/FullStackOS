@@ -32,5 +32,12 @@ struct __attribute__((packed)) SystemPointer
     uint16_t limit;
     uint64_t base;
 };
+struct CPURegisters
+{
+    size_t gs, es, fs, ds;
+    size_t r15, r14, r13, r12, r11, r10, r9, r8, rbp, rdi, rsi, rdx, rcx, rbx, rax;
+    size_t num, code;
+    size_t rip, cs, rflags, rsp, ss;
+};
 #endif
 #endif

@@ -31,12 +31,11 @@ struct __attribute__((packed)) GDTSystemEntry
 class GDT
 {
 private:
-    GDTEntry gdtEntries[8];
-    GDTSystemEntry gdtSystemEntries[2];
-    SystemPointer address;
+    GDTEntry gdtEntries[20];
 public:
     GDT();
     void load(uint64_t cs, uint64_t ds, uint64_t es, uint64_t fs, uint64_t gs, uint64_t ss);
 };
+void initializeGDT();
 #endif
 #endif

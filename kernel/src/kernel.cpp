@@ -1,5 +1,7 @@
 #include <SmartOS.h>
-#include <CPU.h>
+#include <GDT.h>
+#include <IDT.h>
+#include <IRQ.h>
 struct BootData
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -18,5 +20,12 @@ extern "C" void kernel_main(BootData data)
 #ifdef __DEBUG__
     qemu_printf("Initialized GDT.\n");
 #endif
+    initializeIDT();
+    initializePIC();
+#ifdef __DEBUG__
+    qemu_printf("Initialized IDT & PIC.\n");
+#endif
+    
+    asm volatile ("sti");
     for (;;);
 }

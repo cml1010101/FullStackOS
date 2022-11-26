@@ -1,6 +1,7 @@
 #include <GDT.h>
 extern "C" void load_gdt(SystemPointer* address, uint64_t cs, uint64_t ds, uint64_t es,
     uint64_t fs, uint64_t gs, uint64_t ss);
+GDT gdt;
 GDTEntry::GDTEntry()
 {
     limit0 = 0;
@@ -47,12 +48,22 @@ GDTSystemEntry::GDTSystemEntry(uint64_t base, uint32_t limit, uint8_t access, ui
 }
 GDT::GDT()
 {
+    gdtEntries[0] = GDTEntry();
     gdtEntries[1] = GDTEntry(0, 0xFFFFF, 0x9A, 0xA);
     gdtEntries[2] = GDTEntry(0, 0xFFFFF, 0x92, 0xC);
 }
 void GDT::load(uint64_t cs, uint64_t ds, uint64_t es, uint64_t fs, uint64_t gs, uint64_t ss)
 {
-    address.base = (uint64_t)&gdtEntries[0];
-    address.limit = sizeof(gdtEntries) + sizeof(gdtSystemEntries) - 1;
+    SystemPointer address;
+    address.base = (uint64_t)gdtEntries;
+    address.limit = sizeof(gdtEntries) - 1;
+#ifdef __DEBUG__
+    qemu_printf("Address base: 0x%x\nAddress limit 0x%x\n", address.base, address.limit);
+#endif
     load_gdt(&address, cs, ds, es, fs, gs, ss);
+}
+void initializeGDT()
+{
+    gdt = GDT();
+    gdt.load(0x8, 0x10, 0x10, 0x10, 0x10, 0x10);
 }
