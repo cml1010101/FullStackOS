@@ -6,6 +6,7 @@
 #include <MMU.h>
 #include <Heap.h>
 #include <Scheduler.h>
+#include <Graphics.h>
 #include <PCI.h>
 #include <IDE.h>
 struct BootData
@@ -75,5 +76,7 @@ extern "C" void kernel_main(BootData data)
         qemu_printf("\n");
 #endif
     }
+    initializeGraphics(data.gop);
+    Window* window = generateWindow(0, 0, 100, 100);
     for (;;);
 }

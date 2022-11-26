@@ -25,7 +25,7 @@ Thread::Thread(void(*entry)(), const char* name, bool user)
     asleep = false;
     joined = false;
     done = false;
-    dir = kernelDirectory->clone();
+    dir = kernelDirectory;
     heap = (Heap*)kmalloc(sizeof(Heap));
     *heap = Heap(0x10000);
     next = NULL;
