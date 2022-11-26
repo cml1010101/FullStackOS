@@ -153,3 +153,21 @@ char* itoa(int num, size_t base)
     reverse(str, i);
     return str;
 }
+extern "C" void memset(void* dest, uint8_t val, size_t size)
+{
+    for (size_t i = 0; i < size; i++) ((char*)dest)[i] = val;
+}
+extern "C" void memcpy(void* dest, const void* src, size_t len)
+{
+    for (size_t i = 0; i < len; i++) ((char*)dest)[i] = ((const char*)src)[i];
+}
+extern "C" int memcmp(const void* a, const void* b, size_t len)
+{
+    const char* a_str = (const char*)a;
+    const char* b_str = (const char*)b;
+    for (size_t i = 0; i < len; i++)
+    {
+        if (a_str[i] - b_str[i]) return a_str[i] - b_str[i];
+    }
+    return 0;
+}

@@ -23,7 +23,7 @@ void initializeAPIC()
 {
     apicEnabled = true;
 }
-void registerIRQHandler(size_t irqNum, IRQHandler handler)
+void registerIRQHandler(uint32_t irqNum, IRQHandler handler)
 {
     handlers[irqNum] = handler;
 }

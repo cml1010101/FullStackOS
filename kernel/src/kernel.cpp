@@ -3,6 +3,7 @@
 #include <IDT.h>
 #include <IRQ.h>
 #include <PIT.h>
+#include <MMU.h>
 struct BootData
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -29,6 +30,10 @@ extern "C" void kernel_main(BootData data)
     initializePIT(50);
 #ifdef __DEBUG__
     qemu_printf("Initialized PIT.\n");
+#endif
+    initializeMMU(data.memoryMap, data.mapSize, data.descriptorSize);
+#ifdef __DEBUG__
+    qemu_printf("Initialized MMU.\n");
 #endif
     asm volatile ("sti");
     for (;;);
