@@ -1,14 +1,14 @@
 #include <FAT16.h>
 uint16_t FAT16::readFAT(uint16_t entry)
 {
-    uint64_t sector = fatOffset + (uint64_t)entry / sectorsPerFAT;
+    uint64_t sector = fatOffset + (uint64_t)entry / 256;
     uint16_t entries[256];
     device->readSectors(sector, &entries, 1);
-    return entries[entry % sectorsPerFAT];
+    return entries[entry % 256];
 }
 void FAT16::writeFAT(uint16_t idx, uint16_t entry)
 {
-    uint64_t sector = fatOffset + (uint64_t)idx / sectorsPerFAT;
+    uint64_t sector = fatOffset + (uint64_t)idx / 256;
     uint16_t entries[256];
     device->readSectors(sector, entries, 1);
     entries[idx % sectorsPerFAT] = entry;
@@ -16,11 +16,24 @@ void FAT16::writeFAT(uint16_t idx, uint16_t entry)
 }
 void FAT16::readCluster(uint16_t idx, void* buffer)
 {
-    device->readSectors(dataOffset + (uint64_t)idx * sectorsPerCluster, buffer, sectorsPerCluster);
+    if (idx == 0x1)
+    {
+        device->readSectors(rootOffset + (uint64_t)idx * sectorsPerCluster, buffer, sectorsPerCluster);
+        return;
+    }
+    device->readSectors(dataOffset + (uint64_t)idx * sectorsPerCluster - 1, buffer,
+        sectorsPerCluster);
 }
 void FAT16::writeCluster(uint16_t idx, const void* buffer)
 {
-    device->writeSectors(dataOffset + (uint64_t)idx * sectorsPerCluster, buffer, sectorsPerCluster);
+    if (idx == 0x1)
+    {
+        device->writeSectors(rootOffset + (uint64_t)idx * sectorsPerCluster, buffer,
+            sectorsPerCluster);
+        return;
+    }
+    device->writeSectors(dataOffset + (uint64_t)idx * sectorsPerCluster - 1, buffer,
+        sectorsPerCluster);
 }
 void filenameToFAT(char* fatname, const char* name)
 {
@@ -37,6 +50,7 @@ void filenameToFAT(char* fatname, const char* name)
         i++;
     }
     if (!name[j]) return;
+    j++;
     while (name[j] && i < 11)
     {
         fatname[i++] = name[j++];
@@ -74,25 +88,27 @@ void FAT16::read(File* file, void* dest, size_t size)
 {
     size_t startCluster = *(uint32_t*)file->metadata;
     size_t clusterIdx = 0;
-    while (file->position >= ((clusterIdx + 1) * sectorsPerCluster * 512))
+    while (file->position > ((clusterIdx + 1) * sectorsPerCluster * 512))
     {
         startCluster = readFAT(startCluster);
+        clusterIdx++;
     }
     size_t endPos = size + file->position;
     size_t endCluster = startCluster;
     while (endPos > ((clusterIdx + 1) * sectorsPerCluster * 512))
     {
         endCluster = readFAT(endCluster);
+        clusterIdx++;
     }
     size_t readPos = file->position;
     size_t writePos = 0;
-    uint8_t* clusterBuffer = new uint8_t[512 * size];
+    uint8_t* clusterBuffer = new uint8_t[512 * sectorsPerCluster];
     while (startCluster != endCluster)
     {
         readCluster(startCluster, clusterBuffer);
         memcpy(dest + writePos, clusterBuffer + (readPos % (sectorsPerCluster * 512)),
             (sectorsPerCluster * 512) - (readPos % (sectorsPerCluster * 512)));
-        writePos += (readPos % (sectorsPerCluster * 512));
+        writePos += (sectorsPerCluster * 512) - (readPos % (sectorsPerCluster * 512));
         readPos /= sectorsPerCluster * 512;
         readPos += 1;
         readPos *= sectorsPerCluster * 512;
@@ -141,7 +157,7 @@ uint16_t FAT16::searchDirectory(uint16_t cluster, const char* fatname, size_t* s
     DirectoryEntry* entries = new DirectoryEntry[sectorsPerCluster * 32];
     while (cluster < 0xFFF7)
     {
-        device->readSectors(dataOffset + cluster, entries, sectorsPerCluster);
+        readCluster(cluster, entries);
         for (size_t i = 0; i < 32 * sectorsPerCluster; i++)
         {
             if (entries[i].name[0] == 0) return 0xFFF8;
@@ -174,11 +190,18 @@ File* FAT16::open(const char* path)
             memset(filename + (i - j), 0, 11 - (i - j));
             filenameToFAT(fatFilename, filename);
             cluster = searchDirectory(cluster, fatFilename, &lastSize);
-            j++;
             j = i + 1;
         }
         i++;
     }
+    char fatFilename[12];
+    fatFilename[11] = 0;
+    char filename[13];
+    filename[12] = 0;
+    memcpy(filename, &path[j], i - j);
+    memset(filename + (i - j), 0, 11 - (i - j));
+    filenameToFAT(fatFilename, filename);
+    cluster = searchDirectory(cluster, fatFilename, &lastSize);
     uint32_t* clusterPtr = new uint32_t;
     *clusterPtr = cluster;
     return new File(this, clusterPtr, lastSize, path);
@@ -192,7 +215,9 @@ FAT16::FAT16(StorageDevice* dev, size_t offset)
     sectorsPerCluster = block.bpb.sectorsPerCluster;
     sectorsPerFAT = block.bpb.smallSectorsPerFAT;
     fatOffset = (uint64_t)block.bpb.reservedSectors + partitionOffset;
-    dataOffset = (uint64_t)block.bpb.numberOfFAT * sectorsPerFAT + partitionOffset;
+    dataOffset = (uint64_t)block.bpb.numberOfFAT * sectorsPerFAT + partitionOffset
+        + (block.bpb.numberOfRootEntries + 15) / 16;
+    rootOffset = (uint64_t)block.bpb.numberOfFAT * sectorsPerFAT + partitionOffset;
 }
 const char* FAT16::getName()
 {
@@ -216,7 +241,6 @@ Vector<File*> FAT16::list(const char* path)
             memset(filename + (i - j), 0, 11 - (i - j));
             filenameToFAT(fatFilename, filename);
             cluster = searchDirectory(cluster, fatFilename, &lastSize);
-            j++;
             j = i + 1;
         }
         i++;
@@ -224,7 +248,7 @@ Vector<File*> FAT16::list(const char* path)
     Vector<File*> files = Vector<File*>();
     while (cluster < 0xFFF7)
     {
-        device->readSectors(dataOffset + cluster, entries, sectorsPerCluster);
+        readCluster(cluster, entries);
         for (size_t i = 0; i < 32 * sectorsPerCluster; i++)
         {
             if (entries[i].name[0] == 0) break;

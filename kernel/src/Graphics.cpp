@@ -1,6 +1,34 @@
 #include <Graphics.h>
 #include <MMU.h>
 #include <Scheduler.h>
+#define PSF_FONT_MAGIC 0x864ab572
+struct PSFHeader {
+    uint32_t magic;
+    uint32_t version;
+    uint32_t headersize;
+    uint32_t flags;
+    uint32_t numglyph;
+    uint32_t bytesperglyph;
+    uint32_t height;
+    uint32_t width;
+};
+Font::Font(void* ptr)
+{
+    PSFHeader* psfHeader = (PSFHeader*)ptr;
+    if (psfHeader->magic == PSF_FONT_MAGIC)
+    {
+        bytesPerGlyph = psfHeader->bytesperglyph;
+        fontSizeX = psfHeader->width;
+        fontSizeY = psfHeader->height;
+        glyphs = new uint8_t[bytesPerGlyph * 256];
+        memcpy(glyphs, psfHeader + 1, 256 * bytesPerGlyph);
+    }
+}
+uint8_t* Font::getCharacterGlyph(unsigned char c)
+{
+    size_t idx = (size_t)c * bytesPerGlyph;
+    return &glyphs[idx];
+}
 extern "C" char _binary_font_psf_start;
 extern "C" char _binary_font_psf_end;
 extern PageDirectory* kernelDirectory;
@@ -18,6 +46,19 @@ void Window::fillRect(size_t x, size_t y, size_t w, size_t h, uint32_t color)
         for (size_t j = 0; j < w; j++)
         {
             framebuffer[where + j] = color;
+        }
+        where += width;
+    }
+}
+void Window::drawChar(size_t x, size_t y, unsigned char c, uint32_t color, Font* font)
+{
+    size_t where = y * width + x;
+    uint8_t* glyph = font->getCharacterGlyph(c);
+    for (size_t i = 0; i < font->fontSizeY; i++)
+    {
+        for (size_t j = 0; j < font->fontSizeX; j++)
+        {
+            if (glyph[i] & (1 << j)) framebuffer[where + j] = color;
         }
         where += width;
     }

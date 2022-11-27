@@ -18,7 +18,7 @@ class FAT16 : public FileSystem
 {
 private:
     StorageDevice* device;
-    size_t partitionOffset, sectorsPerCluster, sectorsPerFAT, fatOffset, dataOffset;
+    size_t partitionOffset, sectorsPerCluster, sectorsPerFAT, fatOffset, dataOffset, rootOffset;
     uint16_t readFAT(uint16_t entry);
     void writeFAT(uint16_t idx, uint16_t entry);
     void readCluster(uint16_t idx, void* buffer);

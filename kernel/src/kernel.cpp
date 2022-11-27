@@ -73,13 +73,12 @@ extern "C" void kernel_main(BootData data)
             scanDevice(storageDevices[i]);
         }
     }
-    qemu_printf("%s\n", fileSystems[0]->getName());
-    Vector<File*> list = fileSystems[0]->list("");
-    for (size_t i = 0; i < list.size(); i++)
-    {
-        qemu_printf("%s\n", list[i]->path);
-    }
     initializeGraphics(data.gop);
     Window* window = generateWindow(0, 0, 100, 100);
+    File* font_psf = fileSystems[0]->open("RES/FONT.PSF");
+    uint8_t* font_data = new uint8_t[font_psf->getSize()];
+    font_psf->read(font_data, font_psf->getSize());
+    Font font = Font(font_data);
+    window->drawChar(20, 20, 'H', 0, &font);
     for (;;);
 }
