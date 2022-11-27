@@ -41,6 +41,7 @@ int memcmp(const void* a, const void* b, size_t count);
 void* malloc(size_t size);
 void free(void* ptr);
 void sleep(uint64_t millis);
+size_t strlen(const char* str);
 #ifdef __cplusplus
 }
 struct __attribute__((packed)) SystemPointer
@@ -147,8 +148,59 @@ public:
     virtual const char* getType() = 0;
     virtual void readSectors(uint64_t lba, void* dest, size_t sectors) = 0;
     virtual void writeSectors(uint64_t lba, const void* src, size_t sectors) = 0;
+    virtual size_t getSize() = 0;
 };
 extern Vector<StorageDevice*> storageDevices;
 void registerStorageDevice(StorageDevice* device);
+class File;
+class FileSystem
+{
+protected:
+    virtual void read(File* metadata, void* dest, size_t size) = 0;
+    virtual void write(File* metadata, const void* src, size_t size) = 0;
+    friend class File;
+public:
+    virtual File* open(const char* path) = 0;
+    virtual Vector<File*> list(const char* path) = 0;
+    FileSystem() = default;
+    virtual const char* getName() = 0;
+};
+extern Vector<FileSystem*> fileSystems;
+class File
+{
+public:
+    const char* path;
+    const char* name;
+    FileSystem* fileSystem;
+    size_t position;
+    size_t size;
+    void* metadata;
+    inline File(FileSystem* system, void* metadata, size_t size, const char* path)
+    {
+        fileSystem = system;
+        this->metadata = metadata;
+        this->size = size;
+        position = 0;
+        this->path = path;
+    }
+    File() = default;
+    inline void setPosition(size_t position)
+    {
+        this->position = position;
+    }
+    inline void read(void* dest, size_t size)
+    {
+        fileSystem->read(this, dest, size);
+    }
+    inline void write(const void* src, size_t size)
+    {
+        fileSystem->write(this, src, size);
+    }
+    inline size_t getSize()
+    {
+        return size;
+    }
+};
+void registerFileSystem(FileSystem* system);
 #endif
 #endif

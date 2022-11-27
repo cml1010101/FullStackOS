@@ -40,6 +40,7 @@ public:
     bool exists();
     void readSectors(uint64_t lba, void* dest, size_t sectors);
     void writeSectors(uint64_t lba, const void* src, size_t sectors);
+    size_t getSize();
 };
 class IDEDriver : public Driver
 {

@@ -9,6 +9,7 @@
 #include <Graphics.h>
 #include <PCI.h>
 #include <IDE.h>
+#include <Partitions.h>
 struct BootData
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -63,18 +64,20 @@ extern "C" void kernel_main(BootData data)
             ideDriver = new IDEDriver(pciDevices[i]);
         }
     }
-    if (ideDriver)
+    if (ideDriver) registerDriver(ideDriver);
+    fileSystems = Vector<FileSystem*>();
+    for (size_t i = 0; i < storageDevices.size(); i++)
     {
-#ifdef __DEBUG__
-        uint8_t data[512];
-        storageDevices[0]->readSectors(0, data, 1);
-        for (size_t i = 0; i < 512; i++)
+        if (storageDevices[i]->getSize())
         {
-            uint64_t byte = data[i];
-            qemu_printf("0x%x ", byte);
+            scanDevice(storageDevices[i]);
         }
-        qemu_printf("\n");
-#endif
+    }
+    qemu_printf("%s\n", fileSystems[0]->getName());
+    Vector<File*> list = fileSystems[0]->list("");
+    for (size_t i = 0; i < list.size(); i++)
+    {
+        qemu_printf("%s\n", list[i]->path);
     }
     initializeGraphics(data.gop);
     Window* window = generateWindow(0, 0, 100, 100);

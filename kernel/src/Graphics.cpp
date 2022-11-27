@@ -1,6 +1,8 @@
 #include <Graphics.h>
 #include <MMU.h>
 #include <Scheduler.h>
+extern "C" char _binary_font_psf_start;
+extern "C" char _binary_font_psf_end;
 extern PageDirectory* kernelDirectory;
 Window::Window(size_t x, size_t y, size_t w, size_t h)
     : windowX(x), windowY(y), width(w), height(h)

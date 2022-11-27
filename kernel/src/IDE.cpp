@@ -429,3 +429,7 @@ void IDEDevice::writeSectors(uint64_t lba, const void* src, size_t numSectors)
         }
     }
 }
+size_t IDEDevice::getSize()
+{
+    return sectors;
+}
