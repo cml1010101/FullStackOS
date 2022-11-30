@@ -105,7 +105,8 @@ void graphicsUpdate()
             {
                 for (size_t j = 0; j < cursor->getWidth(); j++)
                 {
-                    graphicsSecondary[where + j] = cursorData[whereIcon + j];
+                    if (cursorData[whereIcon + j] & 0xFF000000)
+                        graphicsSecondary[where + j] = cursorData[whereIcon + j];
                 }
                 where += graphicsWidth;
                 whereIcon += cursor->getWidth();

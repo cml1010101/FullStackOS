@@ -18,5 +18,17 @@ Icon* parseTGA(uint8_t* targaPtr, size_t targaSize)
             }
         }
     }
+    else if (header->imageType == 2)
+    {
+        for (size_t i = 0; i < h; i++)
+        {
+            for (size_t j = 0; j < w; j++)
+            {
+                size_t k = ((h - i - 1) * w + j) * 4;
+                data[i * w + j] = (targaData[k] << 24) | (targaData[k + 1] << 16)
+                    | (targaData[k + 2] << 8) | targaData[k + 3];
+            }
+        }
+    }
     return new Icon(w, h, data);
 }
