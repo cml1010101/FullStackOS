@@ -191,3 +191,8 @@ extern "C" size_t strlen(const char* str)
     while (str[i]) i++;
     return i;
 }
+void switchEndian(void* dest, const void* src, size_t size)
+{
+    memcpy(dest, src, size);
+    reverse((char*)dest, size);
+}

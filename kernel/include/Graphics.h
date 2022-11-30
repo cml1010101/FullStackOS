@@ -1,6 +1,7 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 #include <SmartOS.h>
+#include <Icon.h>
 #ifdef __cplusplus
 class Font
 {
@@ -23,5 +24,7 @@ public:
 };
 void initializeGraphics(EFI_GRAPHICS_OUTPUT_PROTOCOL* gop);
 Window* generateWindow(size_t x, size_t y, size_t w, size_t h);
+void setCursor(Icon* cursorData);
+void initializeCursor();
 #endif
 #endif

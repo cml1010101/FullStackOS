@@ -10,6 +10,8 @@
 #include <PCI.h>
 #include <IDE.h>
 #include <Partitions.h>
+#include <Targa.h>
+#include <Mouse.h>
 struct BootData
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -35,7 +37,7 @@ extern "C" void kernel_main(BootData data)
 #ifdef __DEBUG__
     qemu_printf("Initialized IDT & PIC.\n");
 #endif
-    initializePIT(50);
+    initializePIT(100);
 #ifdef __DEBUG__
     qemu_printf("Initialized PIT.\n");
 #endif
@@ -79,6 +81,15 @@ extern "C" void kernel_main(BootData data)
     uint8_t* font_data = new uint8_t[font_psf->getSize()];
     font_psf->read(font_data, font_psf->getSize());
     Font font = Font(font_data);
+    File* cursor_tga = fileSystems[0]->open("RES/CURSOR.TGA");
+    uint8_t* cursor_data = new uint8_t[cursor_tga->getSize()];
+    cursor_tga->read(cursor_data, cursor_tga->getSize());
+    Icon* cursorMap = parseTGA(cursor_data, cursor_tga->getSize());
+    setCursor(cursorMap);
+    qemu_printf("Initializing mouse.\n");
+    initializeMouse();
+    qemu_printf("Initialized mouse.\n");
+    initializeCursor();
     window->drawChar(20, 20, 'H', 0, &font);
     for (;;);
 }

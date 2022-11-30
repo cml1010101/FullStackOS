@@ -42,6 +42,19 @@ void* malloc(size_t size);
 void free(void* ptr);
 void sleep(uint64_t millis);
 size_t strlen(const char* str);
+void switchEndian(void* dest, const void* src, size_t size);
+inline int max(int x, int y)
+{
+    return (x > y) ? x : y;
+}
+inline int min(int x, int y)
+{
+    return (x < y) ? x : y;
+}
+inline uint32_t toBigEndian(uint32_t num)
+{
+    return (num >> 24) | ((num & 0xFF0000) >> 8) | (num << 24) | ((num & 0xFF00) << 8);
+}
 #ifdef __cplusplus
 }
 struct __attribute__((packed)) SystemPointer

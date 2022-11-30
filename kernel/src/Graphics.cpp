@@ -64,12 +64,24 @@ void Window::drawChar(size_t x, size_t y, unsigned char c, uint32_t color, Font*
     }
 }
 Vector<Window*> windows;
-uint32_t* graphicsFramebuffer;
+uint32_t* graphicsFramebuffer, *graphicsSecondary;
 size_t graphicsWidth, graphicsHeight;
+Icon* cursor;
+volatile bool cursorInitialized;
+extern int mouseX, mouseY;
 void graphicsUpdate()
 {
     while (true)
     {
+        size_t where = 0;
+        for (size_t i = 0; i < graphicsHeight; i++)
+        {
+            for (size_t j = 0; j < graphicsWidth; j++)
+            {
+                graphicsSecondary[where + j] = 0;
+            }
+            where += graphicsWidth;
+        }
         for (size_t i = 0; i < windows.size(); i++)
         {
             size_t where0 = windows[i]->windowY * graphicsWidth + windows[i]->windowX;
@@ -78,11 +90,35 @@ void graphicsUpdate()
             {
                 for (size_t k = 0; k < windows[i]->width; k++)
                 {
-                    graphicsFramebuffer[where0 + k] = windows[i]->framebuffer[where1 + k];
+                    graphicsSecondary[where0 + k] = windows[i]->framebuffer[where1 + k];
                 }
                 where1 += windows[i]->width;
                 where0 += graphicsWidth;
             }
+        }
+        if (cursorInitialized)
+        {
+            size_t where = mouseY * graphicsWidth + mouseX;
+            size_t whereIcon = 0;
+            uint32_t* cursorData = cursor->getData();
+            for (size_t i = 0; i < cursor->getHeight(); i++)
+            {
+                for (size_t j = 0; j < cursor->getWidth(); j++)
+                {
+                    graphicsSecondary[where + j] = cursorData[whereIcon + j];
+                }
+                where += graphicsWidth;
+                whereIcon += cursor->getWidth();
+            }
+        }
+        where = 0;
+        for (size_t i = 0; i < graphicsHeight; i++)
+        {
+            for (size_t j = 0; j < graphicsWidth; j++)
+            {
+                graphicsFramebuffer[where + j] = graphicsSecondary[where + j];
+            }
+            where += graphicsWidth;
         }
     }
 }
@@ -92,8 +128,10 @@ void initializeGraphics(EFI_GRAPHICS_OUTPUT_PROTOCOL* gop)
     graphicsFramebuffer = (uint32_t*)gop->Mode->FrameBufferBase;
     graphicsWidth = gop->Mode->Info->HorizontalResolution;
     graphicsHeight = gop->Mode->Info->VerticalResolution;
+    graphicsSecondary = (uint32_t*)kmalloc(graphicsWidth * graphicsHeight * 4);
     kernelDirectory->map((uint64_t)graphicsFramebuffer, (uint64_t)graphicsFramebuffer,
         (graphicsWidth * graphicsHeight * 4 + 0xFFF) / 0x1000, MMU_PRESENT | MMU_RW);
+    cursorInitialized = false;
     Thread* graphics = new Thread(graphicsUpdate, "GRAPHICS");
     addThread(graphics);
 }
@@ -102,4 +140,12 @@ Window* generateWindow(size_t x, size_t y, size_t w, size_t h)
     Window* window = new Window(x, y, w, h);
     windows.push(window);
     return window;
+}
+void setCursor(Icon* cursorData)
+{
+    cursor = cursorData;
+}
+void initializeCursor()
+{
+    cursorInitialized = true;
 }
