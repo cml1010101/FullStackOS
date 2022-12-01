@@ -12,6 +12,7 @@
 #include <Partitions.h>
 #include <Targa.h>
 #include <Mouse.h>
+#include <Keyboard.h>
 struct BootData
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -21,6 +22,23 @@ struct BootData
     size_t descriptorSize;
 };
 IDEDriver* ideDriver;
+#ifdef __DEBUG__
+extern "C" void handleKey(uint8_t key, uint8_t pressed)
+{
+    if (pressed)
+    {
+        char c = keycodesASCII[key];
+        if (keyboardState.leftShift) c = keycodesShiftASCII[key];
+        if (c)
+        {
+            char str[2];
+            str[0] = c;
+            str[1] = 0;
+            qemu_printf("%s", str);
+        }
+    }
+}
+#endif
 extern "C" void kernel_main(BootData data)
 {
     asm volatile ("cli");
@@ -91,5 +109,9 @@ extern "C" void kernel_main(BootData data)
     qemu_printf("Initialized mouse.\n");
     initializeCursor();
     window->drawChar(20, 20, 'H', 0, &font);
+    initializeKeyboard();
+#ifdef __DEBUG__
+    addKeyboardHandler(handleKey);
+#endif
     for (;;);
 }
