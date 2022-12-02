@@ -113,5 +113,6 @@ extern "C" void kernel_main(BootData data)
 #ifdef __DEBUG__
     addKeyboardHandler(handleKey);
 #endif
+    initializeDrag();
     for (;;);
 }

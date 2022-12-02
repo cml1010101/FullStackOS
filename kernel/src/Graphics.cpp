@@ -1,6 +1,7 @@
 #include <Graphics.h>
 #include <MMU.h>
 #include <Scheduler.h>
+#include <Mouse.h>
 #define PSF_FONT_MAGIC 0x864ab572
 struct PSFHeader {
     uint32_t magic;
@@ -86,6 +87,19 @@ void graphicsUpdate()
         {
             size_t where0 = windows[i]->windowY * graphicsWidth + windows[i]->windowX;
             size_t where1 = 0;
+            for (size_t j = 0; j < 20; j++)
+            {
+                size_t k;
+                for (k = 0; k < windows[i]->width - 20; k++)
+                {
+                    graphicsSecondary[where0 + k] = 0xFFD3D3D3;
+                }
+                for (; k < windows[i]->width; k++)
+                {
+                    graphicsSecondary[where0 + k] = 0xFFFF0000;
+                }
+                where0 += graphicsWidth;
+            }
             for (size_t j = 0; j < windows[i]->height; j++)
             {
                 for (size_t k = 0; k < windows[i]->width; k++)
@@ -149,4 +163,21 @@ void setCursor(Icon* cursorData)
 void initializeCursor()
 {
     cursorInitialized = true;
+}
+void handleDrag(int sourceX, int sourceY, int destX, int destY)
+{
+    for (size_t i = 0; i < windows.size(); i++)
+    {
+        if (windows[i]->windowX <= sourceX && windows[i]->windowY <= sourceY
+            && (windows[i]->windowX + windows[i]->width) >= sourceX
+            && (windows[i]->windowY + 20) >= sourceY)
+        {
+            windows[i]->windowX += destX - sourceX;
+            windows[i]->windowY += destY - sourceY;
+        }
+    }
+}
+void initializeDrag()
+{
+    addMouseDragHandler(handleDrag);
 }

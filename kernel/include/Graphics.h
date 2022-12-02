@@ -26,5 +26,6 @@ void initializeGraphics(EFI_GRAPHICS_OUTPUT_PROTOCOL* gop);
 Window* generateWindow(size_t x, size_t y, size_t w, size_t h);
 void setCursor(Icon* cursorData);
 void initializeCursor();
+void initializeDrag();
 #endif
 #endif
