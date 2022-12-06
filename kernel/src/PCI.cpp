@@ -19,6 +19,10 @@ uint16_t PCIDevice::getVendor()
 {
     return pciConfigReadWord(bus, slot, func, 0);
 }
+uint16_t PCIDevice::getDeviceID()
+{
+    return pciConfigReadWord(bus, slot, func, 2);
+}
 uint8_t PCIDevice::getClass()
 {
     return pciConfigReadWord(bus, slot, func, 0xA) >> 8;
@@ -59,8 +63,8 @@ void initializePCI()
             if (dev.getVendor() == 0xFFFF) continue;
             pciDevices.push(dev);
 #ifdef __DEBUG__
-            qemu_printf("PCI Device(%d, %d, 0): Type = {0x%x, 0x%x, 0x%x}, Vendor = 0x%x\n",
-                i, j, dev.getClass(), dev.getSubclass(), dev.getProgIF(), dev.getVendor());
+            qemu_printf("PCI Device(%d, %d, 0): Type = {0x%x, 0x%x, 0x%x}, Vendor = 0x%x, Device = 0x%x\n",
+                i, j, dev.getClass(), dev.getSubclass(), dev.getProgIF(), dev.getVendor(), dev.getDeviceID());
 #endif
             if (dev.getHeaderType() & 0x80)
             {
@@ -70,8 +74,8 @@ void initializePCI()
                     if (dev.getVendor() == 0xFFFF) continue;
                     pciDevices.push(dev);
 #ifdef __DEBUG__
-                    qemu_printf("PCI Device(%d, %d, %d): Type = {0x%x, 0x%x, 0x%x}, Vendor = 0x%x\n",
-                        i, j, k, dev.getClass(), dev.getSubclass(), dev.getProgIF(), dev.getVendor());
+                    qemu_printf("PCI Device(%d, %d, %d): Type = {0x%x, 0x%x, 0x%x}, Vendor = 0x%x, Device = 0x%x\n",
+                        i, j, k, dev.getClass(), dev.getSubclass(), dev.getProgIF(), dev.getVendor(), dev.getDeviceID());
 #endif
                 }
             }

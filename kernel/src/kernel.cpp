@@ -10,9 +10,8 @@
 #include <PCI.h>
 #include <IDE.h>
 #include <Partitions.h>
-#include <Targa.h>
-#include <Mouse.h>
 #include <Keyboard.h>
+#include <Terminal.h>
 struct BootData
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -64,11 +63,6 @@ extern "C" void kernel_main(BootData data)
     qemu_printf("Initialized MMU.\n");
 #endif
     initializeHeap();
-#ifdef __DEBUG__
-    size_t* ls = new size_t[5];
-    qemu_printf("Initialized Heap.\n");
-    qemu_printf("Address of ls: 0x%x\n", ls);
-#endif
     initializeScheduler();
 #ifdef __DEBUG__
     qemu_printf("Initialized Scheduler.\n");
@@ -93,26 +87,5 @@ extern "C" void kernel_main(BootData data)
             scanDevice(storageDevices[i]);
         }
     }
-    initializeGraphics(data.gop);
-    Window* window = generateWindow(0, 0, 100, 100);
-    File* font_psf = fileSystems[0]->open("RES/FONT.PSF");
-    uint8_t* font_data = new uint8_t[font_psf->getSize()];
-    font_psf->read(font_data, font_psf->getSize());
-    Font font = Font(font_data);
-    File* cursor_tga = fileSystems[0]->open("RES/CURSOR.TGA");
-    uint8_t* cursor_data = new uint8_t[cursor_tga->getSize()];
-    cursor_tga->read(cursor_data, cursor_tga->getSize());
-    Icon* cursorMap = parseTGA(cursor_data, cursor_tga->getSize());
-    setCursor(cursorMap);
-    qemu_printf("Initializing mouse.\n");
-    initializeMouse();
-    qemu_printf("Initialized mouse.\n");
-    initializeCursor();
-    window->drawChar(20, 20, 'H', 0, &font);
-    initializeKeyboard();
-#ifdef __DEBUG__
-    addKeyboardHandler(handleKey);
-#endif
-    initializeDrag();
     for (;;);
 }

@@ -179,7 +179,6 @@ const char* isrMessages[] = {
 extern Thread* queue;
 extern "C" void isr_handler(CPURegisters* regs)
 {
-    SystemPointer idtAddr, gdtAddr;
 #ifdef __DEBUG__
     qemu_printf("[0x%x]: %s(0x%x)\n", regs->rip, isrMessages[regs->num], regs->code);
 #endif

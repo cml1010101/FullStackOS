@@ -10,6 +10,7 @@ public:
     PCIDevice() = default;
     PCIDevice(uint8_t bus, uint8_t slot, uint8_t func);
     uint16_t getVendor();
+    uint16_t getDeviceID();
     uint8_t getClass();
     uint8_t getSubclass();
     uint8_t getProgIF();
