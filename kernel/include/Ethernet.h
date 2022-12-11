@@ -5,7 +5,6 @@
 #ifdef __cplusplus
 #define ETHERNET_TYPE_ARP 0x0806
 #define ETHERNET_TYPE_IP4 0x0800
-#define ETHERNET_TYPE_IP6 0x86DD
 #define HARDWARE_TYPE_ETHERNET 0x01
 struct __attribute__((packed)) EthernetFrame
 {
@@ -14,6 +13,7 @@ struct __attribute__((packed)) EthernetFrame
     uint16_t type;
     uint8_t data[];
 };
+<<<<<<< HEAD
 typedef void(*ProtocolHandlerFunc)(const void* data, size_t dataLength, EthernetDevice* dev);
 struct ProtocolHandler
 {
@@ -27,15 +27,13 @@ struct ProtocolHandler
     }
 };
 typedef void(*ProtocolInit)(EthernetDevice* dev);
+=======
+>>>>>>> parent of 2c35866... fixes
 void initializeEthernet();
-void addEthernetProtocol(ProtocolInit initFunc, ProtocolHandler handlerFunc);
-void addNIC(PCIDevice* dev);
 void sendEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t protocol,
     EthernetDevice* dev);
 void recieveEthernetPacket(EthernetFrame* frame, size_t len, EthernetDevice* dev);
-void setSourceIP4(uint8_t* ip);
-uint8_t* getSourceIP4();
-void setSourceIP6(uint8_t* ip);
-uint8_t* getSourceIP6();
+void setSourceIP(uint8_t* ip);
+uint8_t* getSourceIP();
 #endif
 #endif
