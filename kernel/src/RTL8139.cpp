@@ -49,6 +49,7 @@ void RTL8139_interrupt(CPURegisters* regs)
     uint16_t status = inw(defaultRTL8139->ioBase + 0x3E);
     if (status & 1)
     {
+        qemu_printf("Package recieved\n");
         uint16_t * t = (uint16_t*)(defaultRTL8139->rxDescs + defaultRTL8139->rxPtr);
         uint16_t packet_length = *(t + 1);
         t = t + 2;

@@ -2,32 +2,33 @@
 #include <RTL8139.h>
 #include <E1000.h>
 #include <MMU.h>
-#include <ARP.h>
-#include <DHCP.h>
-#include <IP.h>
 Vector<EthernetDevice*> ethernetDevices;
-uint8_t sourceIP[4];
+Vector<ProtocolInit> protocolInits;
+Vector<ProtocolHandler> protocolHandlers;
+InternetAddr sourceAddr;
 const uint8_t _broadcastMAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 const uint8_t _broadcastIP4[4] = {0xFF, 0xFF, 0xFF, 0xFF};
 void initializeEthernet()
 {
-    memset(sourceIP, 0x0, 4);
+    memset(&sourceAddr, 0x0, sizeof(sourceAddr));
     ethernetDevices = {};
-    initializeARP();
-    for (size_t i = 0; i < pciDevices.size(); i++)
+    protocolInits = {};
+    protocolHandlers = {};
+}
+void addEthernetProtocol(ProtocolInit initFunc, ProtocolHandler handlerFunc)
+{
+    if (initFunc != NULL) protocolInits.push(initFunc);
+    if (handlerFunc.func != NULL) protocolHandlers.push(handlerFunc);
+}
+void addNIC(PCIDevice* dev)
+{
+    if (dev->getDeviceID() == 0x8139)
     {
-        if (pciDevices[i].getDeviceID() == 0x8139)
+        EthernetDevice* device;
+        ethernetDevices.push(device = new RTL8139(dev));
+        for (size_t i = 0; i < protocolInits.size(); i++)
         {
-            EthernetDevice* dev;
-            ethernetDevices.push(dev = new RTL8139(&pciDevices[i]));
-            dhcpDiscover(dev);
-        }
-        if (pciDevices[i].getDeviceID() == E1000_DEV)
-        {
-            qemu_printf("Found E1000\n");
-            EthernetDevice* dev;
-            ethernetDevices.push(dev = new E1000(&pciDevices[i]));
-            dhcpDiscover(dev);
+            protocolInits[i](device);
         }
     }
 }
@@ -46,21 +47,23 @@ void sendEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t
 }
 void recieveEthernetPacket(EthernetFrame* frame, size_t len, EthernetDevice* dev)
 {
-    len -= sizeof(EthernetFrame);
-    if (ntohs(frame->type) == ETHERNET_TYPE_ARP)
-    {
-        arpHandlePacket((ARPPacket*)frame->data, len, dev);
-    }
-    if (ntohs(frame->type) == ETHERNET_TYPE_IP4)
-    {
-        ipHandlePacket((IPPacket*)frame->data, dev);
-    }
+    for (size_t i = 0; i < protocolHandlers.size(); i++)
+        if (ntohs(frame->type) == protocolHandlers[i].type)
+            protocolHandlers[i].func(frame->data, len - sizeof(EthernetFrame), dev);
 }
-void setSourceIP(uint8_t* ip)
+void setSourceIP4(uint8_t* ip)
 {
-    memcpy(sourceIP, ip, 4);
+    memcpy(sourceAddr.ip4, ip, 4);
 }
-uint8_t* getSourceIP()
+void setSourceIP6(uint8_t* ip)
 {
-    return sourceIP;
+    memcpy(sourceAddr.ip6, ip, 8);
+}
+uint8_t* getSourceIP4()
+{
+    return sourceAddr.ip4;
+}
+uint8_t* getSourceIP6()
+{
+    return sourceAddr.ip6;
 }
