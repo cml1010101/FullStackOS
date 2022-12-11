@@ -13,6 +13,7 @@ public:
     PageDirectory();
     void mapPage(uint64_t virt, uint64_t phys, uint64_t flags);
     void map(uint64_t virt, uint64_t phys, size_t pages, size_t flags);
+    uint64_t virtToPhys(uint64_t virt);
     PageDirectory* clone();
 };
 void switchDirectory(PageDirectory* dir);

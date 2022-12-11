@@ -18,8 +18,8 @@ private:
 public:
     Heap() = default;
     Heap(size_t size);
-    void* malloc(size_t size);
-    void free(void* ptr);
+    virtual void* malloc(size_t size);
+    virtual void free(void* ptr);
 };
 void setCurrentHeap(Heap* heap);
 void initializeHeap();

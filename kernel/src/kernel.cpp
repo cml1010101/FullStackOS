@@ -37,9 +37,12 @@ extern "C" void handleKey(uint8_t key, uint8_t pressed)
         }
     }
 }
+BootData data;
 #endif
-extern "C" void kernel_main(BootData data)
+extern "C" void kernel_main(BootData d)
 {
+    data = d;
+    asm volatile ("mov $0x10000, %rsp");
     asm volatile ("cli");
 #ifdef __DEBUG__
     qemu_init();

@@ -7,10 +7,27 @@ struct MemoryBlock
     uint64_t type;
     uint8_t* frames;
 };
+const char* memoryTypeStrings[15] = {
+    "EfiReservedMemoryType",
+    "EfiLoaderCode",
+    "EfiLoaderData",
+    "EfiBootServicesCode",
+    "EfiBootServicesData",
+    "EfiRuntimeServicesCode",
+    "EfiRuntimeServicesData",
+    "EfiConventionalMemory",
+    "EfiUnusableMemory",
+    "EfiACPIReclaimMemory",
+    "EfiACPIMemoryNVS",
+    "EfiMemoryMappedIO",
+    "EfiMemoryMappedIOPortSpace",
+    "EfiPalCode",
+    "EfiPersistentMemory"
+};
 extern "C" char _kernel_start;
 extern "C" char _kernel_end;
 MemoryBlock blocks[64];
-uint64_t kmallocStart, kmallocAddr;
+uint64_t kmallocStart, kmallocEnd, kmallocAddr, kmallocBlock, kmallocVirt;
 PageDirectory* currentDirectory, *kernelDirectory;
 bool mmuEnabled;
 bool isUsable(uint32_t memoryType)
@@ -33,6 +50,21 @@ bool isUsable(uint32_t memoryType)
         return true;
     };
 }
+uint8_t getPage(size_t addr)
+{
+    for (size_t i = 0; i < 64; i++)
+    {
+        if (!blocks[i].present) break;
+        if (!isUsable(blocks[i].type)) continue;
+        if (blocks[i].physAddr <= addr && (blocks[i].physAddr + blocks[i].numPages * 0x1000)
+            > addr)
+        {
+            size_t index = (addr - blocks[i].physAddr) >> 12;
+            return (blocks[i].frames[index / 8] & (1 << (index % 8))) >> (index % 8);
+        }
+    }
+    return 0xFF;
+}
 void reservePage(size_t addr)
 {
     for (size_t i = 0; i < 64; i++)
@@ -43,7 +75,7 @@ void reservePage(size_t addr)
             > addr)
         {
             size_t index = (addr - blocks[i].physAddr) >> 12;
-            blocks[i].frames[index / 8] |= 1 << index;
+            blocks[i].frames[index / 8] |= 1 << (index % 8);
         }
     }
 }
@@ -57,15 +89,17 @@ void freePage(size_t addr)
             > addr)
         {
             size_t index = (addr - blocks[i].physAddr) >> 12;
-            blocks[i].frames[index / 8] &= ~(1 << index);
+            blocks[i].frames[index / 8] &= ~(1 << (index % 8));
         }
     }
 }
 uint64_t kmalloc(size_t size)
 {
-    uint64_t addr = kmallocAddr;
+    while (kmallocAddr >= kmallocEnd) kmallocNext();
+    uint64_t vaddr = kmallocVirt;
     kmallocAddr += size;
-    return addr;
+    kmallocVirt += size;
+    return vaddr;
 }
 uint64_t kmalloc_a(size_t size)
 {
@@ -74,9 +108,34 @@ uint64_t kmalloc_a(size_t size)
         kmallocAddr &= ~0xFFF;
         kmallocAddr += 0x1000;
     }
-    uint64_t addr = kmallocAddr;
+    while ((kmallocAddr + size) >= kmallocEnd) kmallocNext();
+    uint64_t vaddr = kmallocVirt;
     kmallocAddr += size;
-    return addr;
+    kmallocVirt += size;
+    return vaddr;
+}
+uint64_t kmalloc_ap(size_t size, uint64_t* phys)
+{
+    if (kmallocAddr & 0xFFF)
+    {
+        kmallocAddr &= ~0xFFF;
+        kmallocAddr += 0x1000;
+    }
+    while ((kmallocAddr + size) >= kmallocEnd) kmallocNext();
+    uint64_t vaddr = kmallocVirt;
+    *phys = kmallocAddr;
+    kmallocAddr += size;
+    kmallocVirt += size;
+    return vaddr;
+}
+uint64_t kmalloc_p(size_t size, uint64_t* phys)
+{
+    while ((kmallocAddr + size) >= kmallocEnd) kmallocNext();
+    uint64_t vaddr = kmallocVirt;
+    *phys = kmallocAddr;
+    kmallocAddr += size;
+    kmallocVirt += size;
+    return vaddr;
 }
 uint64_t kmallocPage()
 {
@@ -112,22 +171,25 @@ void PageDirectory::mapPage(uint64_t virt, uint64_t phys, uint64_t flags)
     uint64_t pt_index = (virt >> 12) & 0x1FF;
     if (!(pml4[pml4_index] & MMU_PRESENT))
     {
-        uint64_t paddr = kmalloc_a(0x1000);
-        memset((void*)paddr, 0, 0x1000);
+        uint64_t paddr;
+        uint64_t vaddr = kmalloc_ap(0x1000, &paddr);
+        memset((void*)vaddr, 0, 0x1000);
         pml4[pml4_index] = paddr | flags;
     }
     uint64_t* pdpt = (uint64_t*)(pml4[pml4_index] & MMU_ADDR);
     if (!(pdpt[pdpt_index] & MMU_PRESENT))
     {
-        uint64_t paddr = kmalloc_a(0x1000);
-        memset((void*)paddr, 0, 0x1000);
+        uint64_t paddr;
+        uint64_t vaddr = kmalloc_ap(0x1000, &paddr);
+        memset((void*)vaddr, 0, 0x1000);
         pdpt[pdpt_index] = paddr | flags;
     }
     uint64_t* pd = (uint64_t*)(pdpt[pdpt_index] & MMU_ADDR);
     if (!(pd[pd_index] & MMU_PRESENT))
     {
-        uint64_t paddr = kmalloc_a(0x1000);
-        memset((void*)paddr, 0, 0x1000);
+        uint64_t paddr;
+        uint64_t vaddr = kmalloc_ap(0x1000, &paddr);
+        memset((void*)vaddr, 0, 0x1000);
         pd[pd_index] = paddr | flags;
     }
     uint64_t* pt = (uint64_t*)(pd[pd_index] & MMU_ADDR);
@@ -139,6 +201,29 @@ void PageDirectory::map(uint64_t virt, uint64_t phys, size_t count, uint64_t fla
     for (size_t i = 0; i < count; i++)
     {
         mapPage(virt + i * 0x1000, phys + i * 0x1000, flags);
+    }
+}
+void kmallocNext()
+{
+    while (true)
+    {
+        if (isUsable(blocks[++kmallocBlock].type))
+        {
+            uint8_t flag = 0;
+            size_t i = 0;
+            for (; i < blocks[kmallocBlock].numPages; i++)
+                if (!blocks[kmallocBlock].frames[i]) break;
+            size_t j = 0;
+            for (; j > 0; j--)
+                if (!blocks[kmallocBlock].frames[i]) break;
+            if (i != blocks[kmallocBlock].numPages)
+            {
+                kmallocStart = blocks[kmallocBlock].physAddr + i * 0x1000;
+                kmallocEnd = blocks[kmallocBlock].physAddr + i * 0x1000;
+                kmallocAddr = kmallocStart;
+                break;
+            }
+        }
     }
 }
 void initializeMMU(void* memoryMap, size_t memoryMapSize, size_t descriptorSize)
@@ -163,8 +248,7 @@ void initializeMMU(void* memoryMap, size_t memoryMapSize, size_t descriptorSize)
         }
         descriptor = NextMemoryDescriptor(descriptor, descriptorSize);
     }
-    kmallocStart = largestStart;
-    kmallocAddr = largestStart;
+    kmallocNext();
     descriptor = (EFI_MEMORY_DESCRIPTOR*)memoryMap;
     size_t k = 0;
     for (size_t i = 0; i < descriptorCount; i++)
@@ -188,6 +272,8 @@ void initializeMMU(void* memoryMap, size_t memoryMapSize, size_t descriptorSize)
     for (size_t i = 0; i < 64; i++)
     {
         if (!blocks[i].present) break;
+        qemu_printf("0x%x to 0x%x: %s\n", blocks[i].physAddr,
+            blocks[i].physAddr + blocks[i].numPages * 0x1000, memoryTypeStrings[blocks[i].type]);
         if (isUsable(blocks[i].type))
         {
             blocks[i].frames = (uint8_t*)kmalloc((blocks[i].numPages + 7) / 8);
@@ -210,6 +296,20 @@ void initializeMMU(void* memoryMap, size_t memoryMapSize, size_t descriptorSize)
         reservePage(i);
     }
     switchDirectory(kernelDirectory);
+}
+uint64_t PageDirectory::virtToPhys(uint64_t virt)
+{
+    uint64_t pml4_index = (virt >> 39) & 0x1FF;
+    uint64_t pdpt_index = (virt >> 30) & 0x1FF;
+    uint64_t pd_index = (virt >> 21) & 0x1FF;
+    uint64_t pt_index = (virt >> 12) & 0x1FF;
+    if (!(pml4[pml4_index] & MMU_PRESENT)) return NULL;
+    uint64_t* pdpt = (uint64_t*)(pml4[pml4_index] & MMU_ADDR);
+    if (!(pdpt[pdpt_index] & MMU_PRESENT)) return NULL;
+    uint64_t* pd = (uint64_t*)(pdpt[pdpt_index] & MMU_ADDR);
+    if (!(pd[pd_index] & MMU_PRESENT)) return NULL;
+    uint64_t* pt = (uint64_t*)(pd[pd_index] & MMU_ADDR);
+    return pt[pt_index];
 }
 PageDirectory* PageDirectory::clone()
 {
