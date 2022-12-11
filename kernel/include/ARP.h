@@ -30,12 +30,5 @@ void arpSendPacket(const uint8_t* destHardware, uint8_t* destProtocol, EthernetD
 uint8_t* arpFind(uint8_t* ip);
 bool arpHas(uint8_t* ip);
 void initializeARP();
-<<<<<<< HEAD
-InternetAddr* getInternetAddrIPV4(const uint8_t* ip4);
-InternetAddr* getInternetAddrIPV6(const uint8_t* ip6);
-void arpSearchIPV4(const uint8_t* ip4, EthernetDevice* dev);
-void arpSearchIPV6(const uint8_t* ip6, EthernetDevice* dev);
-=======
->>>>>>> parent of 2c35866... fixes
 #endif
 #endif

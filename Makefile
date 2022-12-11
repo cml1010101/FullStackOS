@@ -6,8 +6,7 @@ all: boot/bootx64.efi kernel/kernel.elf disk.img res/font.psf res/cursor.tga
 	sudo qemu-system-x86_64 -s -S -serial stdio -d cpu_reset -cpu qemu64 -drive \
 		if=pflash,format=raw,unit=0,file=/usr/share/OVMF/OVMF_CODE.fd,readonly=on \
 		-drive if=pflash,format=raw,unit=1,file=/usr/share/OVMF/OVMF_VARS.fd -hda disk.img \
-		-netdev tap,helper=/usr/lib/qemu/qemu-bridge-helper,id=simpleos_net -device rtl8139,netdev=simpleos_net,id=simpleos_nic \
-		-object filter-dump,id=fd0,netdev=simpleos_net,file=traffic.log
+		-netdev user,id=net0 -device rtl8139,netdev=net0
 	cd boot && make clean
 	cd kernel && make clean
 boot/bootx64.efi:
