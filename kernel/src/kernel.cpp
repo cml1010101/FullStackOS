@@ -12,10 +12,6 @@
 #include <Partitions.h>
 #include <Keyboard.h>
 #include <Terminal.h>
-#include <RTL8139.h>
-#include <ARP.h>
-#include <Ethernet.h>
-#include <IP.h>
 struct BootData
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -89,16 +85,6 @@ extern "C" void kernel_main(BootData data)
         if (storageDevices[i]->getSize())
         {
             scanDevice(storageDevices[i]);
-        }
-    }
-    initializeEthernet();
-    initializeARP();
-    initializeIP();
-    for (size_t i = 0; i < pciDevices.size(); i++)
-    {
-        if (pciDevices[i].getDeviceID() == 0x8139)
-        {
-            addNIC(&pciDevices[i]);
         }
     }
     for (;;);

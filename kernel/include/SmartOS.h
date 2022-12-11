@@ -100,16 +100,6 @@ public:
     virtual Package* recievePacket() = 0;
     virtual uint8_t* getMAC() = 0;
 };
-<<<<<<< HEAD
-struct InternetAddr
-{
-    uint8_t mac[6];
-    uint8_t ip4[4];
-    uint8_t ip6[16];
-    InternetAddr() = default;
-};
-=======
->>>>>>> parent of 2c35866... fixes
 template<typename T>
 class Vector
 {
