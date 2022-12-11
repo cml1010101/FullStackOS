@@ -23,6 +23,16 @@ inline void outb(uint16_t port, uint8_t data)
 {
     asm volatile ("out %%al, %%dx":: "a"(data), "d"(port));
 }
+inline uint16_t inw(uint16_t port)
+{
+    uint16_t data;
+    asm volatile ("in %%dx, %%ax": "=a"(data): "d"(port));
+    return data;
+}
+inline void outw(uint16_t port, uint16_t data)
+{
+    asm volatile ("out %%ax, %%dx":: "a"(data), "d"(port));
+}
 inline uint32_t inl(uint16_t port)
 {
     uint32_t data;
@@ -43,6 +53,14 @@ void free(void* ptr);
 void sleep(uint64_t millis);
 size_t strlen(const char* str);
 void switchEndian(void* dest, const void* src, size_t size);
+inline uint16_t ntohs(uint16_t a)
+{
+    return (a >> 8) | ((a & 0xFF) << 8);
+}
+inline uint32_t htonl(uint32_t a)
+{
+    return (a >> 24) | ((a & 0xFF0000) >> 8) | (a << 24) | ((a & 0xFF00) << 8);
+}
 inline int max(int x, int y)
 {
     return (x > y) ? x : y;
@@ -68,6 +86,19 @@ struct CPURegisters
     size_t r15, r14, r13, r12, r11, r10, r9, r8, rbp, rdi, rsi, rdx, rcx, rbx, rax;
     size_t num, code;
     size_t rip, cs, rflags, rsp, ss;
+};
+struct __attribute__((packed)) Package
+{
+    void* data;
+    uint64_t len;
+};
+class EthernetDevice
+{
+public:
+    EthernetDevice() = default;
+    virtual void sendPacket(Package* package) = 0;
+    virtual Package* recievePacket() = 0;
+    virtual uint8_t* getMAC() = 0;
 };
 template<typename T>
 class Vector
@@ -214,6 +245,5 @@ public:
         return size;
     }
 };
-void registerFileSystem(FileSystem* system);
 #endif
 #endif

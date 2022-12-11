@@ -12,6 +12,11 @@
 #include <Partitions.h>
 #include <Keyboard.h>
 #include <Terminal.h>
+#include <RTL8139.h>
+#include <DHCP.h>
+#include <ARP.h>
+#include <UDP.h>
+#include <Ethernet.h>
 struct BootData
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -87,5 +92,9 @@ extern "C" void kernel_main(BootData data)
             scanDevice(storageDevices[i]);
         }
     }
+    initializeEthernet();
+    while (getSourceIP()[0] == 0);
+    qemu_printf("%x.%x.%x.%x\n", getSourceIP()[0], getSourceIP()[1], getSourceIP()[2],
+        getSourceIP()[3]);
     for (;;);
 }

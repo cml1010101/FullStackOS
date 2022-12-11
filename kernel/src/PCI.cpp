@@ -49,7 +49,29 @@ uint32_t PCIDevice::getBar(size_t bar)
     address = (uint32_t)((lbus << 16) | (lslot << 11) | (lfunc << 8) | ((0x10 + bar * 4) & 0xFC) 
         | ((uint32_t)0x80000000));
     outl(0xCF8, address);
-    return inl(0xCFC) & 0xFFFFFFFC;
+    return inl(0xCFC);
+}
+uint8_t PCIDevice::getInterrupt()
+{
+    return pciConfigReadWord(bus, slot, func, 0x3C) & 0xFF;
+}
+uint16_t PCIDevice::getCommand()
+{
+    return pciConfigReadWord(bus, slot, func, 0x4);
+}
+void PCIDevice::writeCommand(uint16_t cmd)
+{
+    uint32_t address;
+    uint32_t lbus  = (uint32_t)bus;
+    uint32_t lslot = (uint32_t)slot;
+    uint32_t lfunc = (uint32_t)func;
+    uint32_t tmp = 0;
+    address = (uint32_t)((lbus << 16) | (lslot << 11) | (lfunc << 8) | ((0x4) & 0xFC) 
+        | ((uint32_t)0x80000000));
+    outl(0xCF8, address);
+    tmp = inl(0xCFC);
+    outl(0xCF8, address);
+    outl(0xCFC, cmd | tmp);
 }
 Vector<PCIDevice> pciDevices;
 void initializePCI()
