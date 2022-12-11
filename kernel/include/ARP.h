@@ -15,5 +15,7 @@ struct __attribute__((packed)) ARPPacket
 void initializeARP();
 InternetAddr* getInternetAddrIPV4(const uint8_t* ip4);
 InternetAddr* getInternetAddrIPV6(const uint8_t* ip6);
+void arpSearchIPV4(const uint8_t* ip4, EthernetDevice* dev);
+void arpSearchIPV6(const uint8_t* ip6, EthernetDevice* dev);
 #endif
 #endif

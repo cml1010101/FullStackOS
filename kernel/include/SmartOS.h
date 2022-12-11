@@ -104,7 +104,8 @@ struct InternetAddr
 {
     uint8_t mac[6];
     uint8_t ip4[4];
-    uint8_t ip6[8];
+    uint8_t ip6[16];
+    InternetAddr() = default;
 };
 template<typename T>
 class Vector

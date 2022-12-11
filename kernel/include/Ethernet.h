@@ -1,6 +1,7 @@
 #ifndef ETHERNET_H
 #define ETHERNET_H
 #include <SmartOS.h>
+#include <PCI.h>
 #ifdef __cplusplus
 #define ETHERNET_TYPE_ARP 0x0806
 #define ETHERNET_TYPE_IP4 0x0800
@@ -18,6 +19,7 @@ struct ProtocolHandler
 {
     ProtocolHandlerFunc func;
     uint16_t type;
+    ProtocolHandler() = default;
     inline ProtocolHandler(uint16_t type, ProtocolHandlerFunc func)
     {
         this->func = func;
