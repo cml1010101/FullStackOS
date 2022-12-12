@@ -5,15 +5,32 @@
 #include <ARP.h>
 #include <DHCP.h>
 #include <IP.h>
+#include <Scheduler.h>
 Vector<EthernetDevice*> ethernetDevices;
+Vector<Package*> ethernetPackages;
 uint8_t sourceIP[4];
 const uint8_t _broadcastMAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 const uint8_t _broadcastIP4[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+void ethernetPeriodic()
+{
+    while (true)
+    {
+        while (ethernetPackages.size() != 0)
+        {
+            qemu_printf("Found packet to send\n");
+            ethernetDevices[0]->sendPacket(ethernetPackages.popTop());
+        }
+        sleep(1);
+    }
+}
 void initializeEthernet()
 {
+    ethernetPackages = {};
     memset(sourceIP, 0x0, 4);
     ethernetDevices = {};
     initializeARP();
+    Thread* thread = new Thread(ethernetPeriodic, "ETHERNET_PERIODIC");
+    addThread(thread);
     for (size_t i = 0; i < pciDevices.size(); i++)
     {
         if (pciDevices[i].getDeviceID() == 0x8139)
@@ -24,7 +41,6 @@ void initializeEthernet()
         }
         if (pciDevices[i].getDeviceID() == E1000_DEV)
         {
-            qemu_printf("Found E1000\n");
             EthernetDevice* dev;
             ethernetDevices.push(dev = new E1000(&pciDevices[i]));
             dhcpDiscover(dev);
@@ -34,18 +50,22 @@ void initializeEthernet()
 void sendEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t protocol,
     EthernetDevice* dev)
 {
+    qemu_printf("Adding packet to stack\n");
     EthernetFrame* frame = (EthernetFrame*)malloc(sizeof(EthernetFrame) + len);
     memcpy(frame->srcMac, dev->getMAC(), 6);
     memcpy(frame->destMac, dest, 6);
     memcpy(frame->data, data, len);
     frame->type = ntohs(protocol);
-    Package pkg;
-    pkg.data = frame;
-    pkg.len = len + sizeof(EthernetFrame);
-    dev->sendPacket(&pkg);
+    Package* pkg = new Package;
+    pkg->data = frame;
+    pkg->len = len + sizeof(EthernetFrame);
+    ethernetPackages.push(pkg);
 }
 void recieveEthernetPacket(EthernetFrame* frame, size_t len, EthernetDevice* dev)
 {
+    qemu_printf("Recieved packet in Ethernet: 0x%x\n", frame->type);
+    qemu_printf("%x:%x:%x:%x:%x:%x\n", frame->destMac[0], frame->destMac[1], frame->destMac[2],
+        frame->destMac[3], frame->destMac[4], frame->destMac[5]);
     len -= sizeof(EthernetFrame);
     if (ntohs(frame->type) == ETHERNET_TYPE_ARP)
     {

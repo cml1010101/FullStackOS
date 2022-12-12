@@ -33,9 +33,9 @@ void makeDHCPPacket(DHCPPacket* packet, uint8_t msgType, uint8_t* ip,
     memcpy((uint32_t*)(options), ip, 4);
     options += 4;
     *(options++) = 12;
-    *(options++) = 0x09;
-    memcpy(options, "simpleos", strlen("simpleos"));
-    options += strlen("simpleos");
+    *(options++) = 0x08;
+    memcpy(options, "SmartOS", strlen("SmartOS"));
+    options += strlen("SmartOS");
     *(options++) = 0x00;
     *(options++) = 55;
     *(options++) = 8;
@@ -87,10 +87,12 @@ void* getDHCPOptions(DHCPPacket* packet, uint8_t type) {
 }
 void dhcpHandlePacket(DHCPPacket* packet, EthernetDevice* dev)
 {
+    qemu_printf("DHCP packet handled\n");
     uint8_t* options = packet->options + 4;
     if (packet->op == DHCP_REPLY)
     {
         uint8_t* type = (uint8_t*)getDHCPOptions(packet, 53);
+        qemu_printf("%x\n", type);
         if(*type == 2)
         {
             dhcpRequest((uint8_t*)&packet->your_ip, dev);
