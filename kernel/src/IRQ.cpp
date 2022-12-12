@@ -34,7 +34,6 @@ extern "C" void irq_handler(CPURegisters* regs)
         if (regs->num >= 8) outb(0xA0, 0x20);
         outb(0x20, 0x20);
     }
-    if (regs->num != 0) qemu_printf("IRQ%d\n", regs->num);
     if (handlers[regs->num]) handlers[regs->num](regs);
     if (apicEnabled)
     {

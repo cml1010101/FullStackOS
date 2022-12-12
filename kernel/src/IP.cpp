@@ -31,7 +31,6 @@ uint16_t ip_calculate_checksum(IPPacket * packet) {
 void ipSendPacket(uint8_t* destIP, void* data, size_t len, uint8_t protocol,
     EthernetDevice* dev)
 {
-    qemu_printf("Sending package\n");
     IPPacket* packet = (IPPacket*)malloc(sizeof(IPPacket) + len);
     memset(packet, 0, sizeof(IPPacket));
     packet->version = IP_IPV4;
@@ -52,8 +51,6 @@ void ipSendPacket(uint8_t* destIP, void* data, size_t len, uint8_t protocol,
     packet->flagsFragmentPtr[0] = flipByte(packet->flagsFragmentPtr[0], 3);
     packet->headerChecksum = ntohs(ip_calculate_checksum(packet));
     int counter = 3;
-    qemu_printf("Sending IP Packet to %d.%d.%d.%d\n", destIP[0], destIP[1], destIP[2], destIP[3]);
-    qemu_printf("ARP has? %s\n", arpHas(destIP) ? "true" : "false");
     while (!arpHas(destIP))
     {
         if (counter)
@@ -67,7 +64,6 @@ void ipSendPacket(uint8_t* destIP, void* data, size_t len, uint8_t protocol,
 }
 void ipHandlePacket(IPPacket* packet, EthernetDevice* dev)
 {
-    qemu_printf("IP packet recieved\n");
     packet->versionIHLPtr[0] = flipByte(packet->versionIHLPtr[0], 4);
     packet->flagsFragmentPtr[0] = flipByte(packet->flagsFragmentPtr[0], 3);
     if (packet->protocol == PROTOCOL_UDP)

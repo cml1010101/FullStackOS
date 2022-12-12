@@ -17,7 +17,6 @@ void ethernetPeriodic()
     {
         while (ethernetPackages.size() != 0)
         {
-            qemu_printf("Found packet to send\n");
             ethernetDevices[0]->sendPacket(ethernetPackages.popTop());
         }
         sleep(1);
@@ -50,7 +49,6 @@ void initializeEthernet()
 void sendEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t protocol,
     EthernetDevice* dev)
 {
-    qemu_printf("Adding packet to stack\n");
     EthernetFrame* frame = (EthernetFrame*)malloc(sizeof(EthernetFrame) + len);
     memcpy(frame->srcMac, dev->getMAC(), 6);
     memcpy(frame->destMac, dest, 6);
@@ -63,9 +61,6 @@ void sendEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t
 }
 void recieveEthernetPacket(EthernetFrame* frame, size_t len, EthernetDevice* dev)
 {
-    qemu_printf("Recieved packet in Ethernet: 0x%x\n", frame->type);
-    qemu_printf("%x:%x:%x:%x:%x:%x\n", frame->destMac[0], frame->destMac[1], frame->destMac[2],
-        frame->destMac[3], frame->destMac[4], frame->destMac[5]);
     len -= sizeof(EthernetFrame);
     if (ntohs(frame->type) == ETHERNET_TYPE_ARP)
     {
