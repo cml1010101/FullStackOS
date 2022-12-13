@@ -2,6 +2,7 @@
 #include <ARP.h>
 #include <Ethernet.h>
 #include <UDP.h>
+#include <TCP.h>
 #define IP_IPV4 4
 #define IP_PACKET_NO_FRAGMENT 2
 #define IP_IS_LAST_FRAGMENT 4
@@ -69,5 +70,9 @@ void ipHandlePacket(IPPacket* packet, EthernetDevice* dev)
     if (packet->protocol == PROTOCOL_UDP)
     {
         udpHandlePacket((UDPPacket*)packet->data, dev);
+    }
+    if (packet->protocol == PROTOCOL_TCP)
+    {
+        tcpRecieve((TCPHeader*)packet->data, packet->srcIP, dev);
     }
 }
