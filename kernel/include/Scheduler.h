@@ -10,7 +10,7 @@ public:
     void(*entry)();
     uint8_t dpl;
     CPURegisters state;
-    bool joined, asleep, done;
+    volatile bool joined, asleep, done;
     Thread* joinTarget;
     size_t sleepTimeout, pid;
     const char* name;

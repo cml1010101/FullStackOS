@@ -16,6 +16,8 @@ struct __attribute__((packed)) EthernetFrame
 void initializeEthernet();
 void sendEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t protocol,
     EthernetDevice* dev);
+void addEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t protocol,
+    EthernetDevice* dev);
 void recieveEthernetPacket(EthernetFrame* frame, size_t len, EthernetDevice* dev);
 void setSourceIP(uint8_t* ip);
 uint8_t* getSourceIP();

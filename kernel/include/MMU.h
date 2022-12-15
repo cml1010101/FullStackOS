@@ -18,6 +18,7 @@ public:
 void switchDirectory(PageDirectory* dir);
 uint64_t kmalloc(size_t size);
 uint64_t kmalloc_a(size_t size);
+uint64_t kmallocPage();
 void initializeMMU(void* memoryMap, size_t memoryMapSize, size_t descriptorSize);
 #endif
 #endif

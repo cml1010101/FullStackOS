@@ -5,6 +5,7 @@
 #include <ARP.h>
 #include <DHCP.h>
 #include <IP.h>
+#include <TCP.h>
 #include <Scheduler.h>
 Vector<EthernetDevice*> ethernetDevices;
 Vector<Package*> ethernetPackages;
@@ -30,6 +31,7 @@ void initializeEthernet()
     initializeARP();
     Thread* thread = new Thread(ethernetPeriodic, "ETHERNET_PERIODIC");
     addThread(thread);
+    initializeTCP();
     for (size_t i = 0; i < pciDevices.size(); i++)
     {
         if (pciDevices[i].getDeviceID() == 0x8139)
@@ -47,6 +49,19 @@ void initializeEthernet()
     }
 }
 void sendEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t protocol,
+    EthernetDevice* dev)
+{
+    EthernetFrame* frame = (EthernetFrame*)malloc(sizeof(EthernetFrame) + len);
+    memcpy(frame->srcMac, dev->getMAC(), 6);
+    memcpy(frame->destMac, dest, 6);
+    memcpy(frame->data, data, len);
+    frame->type = ntohs(protocol);
+    Package* pkg = new Package;
+    pkg->data = frame;
+    pkg->len = len + sizeof(EthernetFrame);
+    dev->sendPacket(pkg);
+}
+void addEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t protocol,
     EthernetDevice* dev)
 {
     EthernetFrame* frame = (EthernetFrame*)malloc(sizeof(EthernetFrame) + len);

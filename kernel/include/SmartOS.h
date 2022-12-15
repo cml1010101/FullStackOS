@@ -53,6 +53,7 @@ void free(void* ptr);
 void sleep(uint64_t millis);
 size_t strlen(const char* str);
 void switchEndian(void* dest, const void* src, size_t size);
+void join(uint64_t pid);
 inline uint16_t ntohs(uint16_t a)
 {
     return (a >> 8) | ((a & 0xFF) << 8);

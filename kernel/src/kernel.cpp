@@ -16,6 +16,8 @@
 #include <ARP.h>
 #include <Ethernet.h>
 #include <IP.h>
+#include <HTTP.h>
+#include <Module.h>
 struct BootData
 {
     EFI_GRAPHICS_OUTPUT_PROTOCOL* gop;
@@ -92,8 +94,10 @@ extern "C" void kernel_main(BootData data)
         }
     }
     initializeEthernet();
+    initializeHTMLFrontend();
     while (getSourceIP()[0] == 0);
     qemu_printf("DHCP Server gave IPV4: %d.%d.%d.%d\n", getSourceIP()[0], getSourceIP()[1],
         getSourceIP()[2], getSourceIP()[3]);
+    modules = {};
     for (;;);
 }

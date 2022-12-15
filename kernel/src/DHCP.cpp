@@ -91,7 +91,6 @@ void dhcpHandlePacket(DHCPPacket* packet, EthernetDevice* dev)
     if (packet->op == DHCP_REPLY)
     {
         uint8_t* type = (uint8_t*)getDHCPOptions(packet, 53);
-        qemu_printf("%x\n", type);
         if(*type == 2)
         {
             dhcpRequest((uint8_t*)&packet->your_ip, dev);

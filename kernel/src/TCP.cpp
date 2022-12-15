@@ -1,9 +1,20 @@
 #include <TCP.h>
 #include <IP.h>
-uint16_t tcp_calculate_checksum(TCPHeader* packet) {
-    int arraySize = sizeof(TCPHeader) / 2;
-    uint16_t* array = (uint16_t*)packet;
-    uint8_t* array2 = (uint8_t*)packet;
+#include <Ethernet.h>
+Vector<TCPHandler> tcpHandlers;
+uint16_t tcp_calculate_checksum(TCPHeader* packet, TCPConnection* conn, size_t dataLength)
+{
+    size_t totalLength = dataLength + sizeof(TCPHeader);
+    void* tmp = malloc(sizeof(TCPHandler) + sizeof(TCPPseudoHeader));
+    TCPPseudoHeader* phdr = (TCPPseudoHeader*)tmp;
+    phdr->protocol = PROTOCOL_TCP;
+    phdr->rsv = 0;
+    phdr->tcpLength = ntohs(totalLength);
+    memcpy(phdr->destIP, conn->destIP, 4);
+    memcpy(phdr->srcIP, getSourceIP(), 4);
+    memcpy(tmp + sizeof(TCPPseudoHeader), packet, sizeof(TCPHeader));
+    int arraySize = (sizeof(TCPHeader) + sizeof(TCPPseudoHeader)) / 2;
+    uint16_t* array = (uint16_t*)tmp;
     uint32_t sum = 0;
     for (int i = 0; i < arraySize; i++)
     {
@@ -40,11 +51,15 @@ void tcpSendSyn(TCPConnection* conn, EthernetDevice* dev)
 {
     TCPHeader* header = new TCPHeader;
     memset(header, 0, sizeof(TCPHeader));
-    header->syn = 1;
+    header->flags = TCP_SYN;
+    header->ackNumber = htonl(conn->ackNumber);
+    header->sequenceNumber = htonl(conn->sequenceNumber);
     header->destPort = ntohs(conn->remotePort);
     header->sourcePort = ntohs(conn->localPort);
-    header->dataOffset = sizeof(TCPHeader);
-    header->checksum = tcp_calculate_checksum(header);
+    header->flags |= (sizeof(TCPHeader) / 4) << 12;
+    header->flags = ntohs(header->flags);
+    header->windowSize = 0xFFFF;
+    header->checksum = ntohs(tcp_calculate_checksum(header, conn, 0));
     ipSendPacket(conn->destIP, header, sizeof(TCPHeader), PROTOCOL_TCP, dev);
 }
 void openTCP(TCPConnection* conn, EthernetDevice* dev)
@@ -56,35 +71,39 @@ void tcpSendSynAck(TCPConnection* conn, EthernetDevice* dev)
 {
     TCPHeader* header = new TCPHeader;
     memset(header, 0, sizeof(TCPHeader));
-    header->syn = 1;
-    header->ack = 1;
+    header->flags = TCP_SYN | TCP_ACK;
     header->destPort = ntohs(conn->remotePort);
     header->sourcePort = ntohs(conn->localPort);
-    header->dataOffset = sizeof(TCPHeader);
-    header->checksum = tcp_calculate_checksum(header);
+    header->flags |= (sizeof(TCPHeader) / 4) << 12;
+    header->flags = ntohs(header->flags);
+    header->windowSize = 0xFFFF;
+    header->checksum = ntohs(tcp_calculate_checksum(header, conn, 0));
     ipSendPacket(conn->destIP, header, sizeof(TCPHeader), PROTOCOL_TCP, dev);
 }
 void tcpSendFinAck(TCPConnection* conn, EthernetDevice* dev)
 {
     TCPHeader* header = new TCPHeader;
     memset(header, 0, sizeof(TCPHeader));
-    header->fin = 1;
-    header->ack = 1;
+    header->flags = TCP_FIN | TCP_ACK;
     header->destPort = ntohs(conn->remotePort);
     header->sourcePort = ntohs(conn->localPort);
-    header->dataOffset = sizeof(TCPHeader);
-    header->checksum = tcp_calculate_checksum(header);
+    header->flags |= (sizeof(TCPHeader) / 4) << 12;
+    header->flags = ntohs(header->flags);
+    header->windowSize = 0xFFFF;
+    header->checksum = ntohs(tcp_calculate_checksum(header, conn, 0));
     ipSendPacket(conn->destIP, header, sizeof(TCPHeader), PROTOCOL_TCP, dev);
 }
 void tcpSendAck(TCPConnection* conn, EthernetDevice* dev)
 {
     TCPHeader* header = new TCPHeader;
     memset(header, 0, sizeof(TCPHeader));
-    header->ack = 1;
+    header->flags = TCP_ACK;
     header->destPort = ntohs(conn->remotePort);
     header->sourcePort = ntohs(conn->localPort);
-    header->dataOffset = sizeof(TCPHeader);
-    header->checksum = tcp_calculate_checksum(header);
+    header->flags |= (sizeof(TCPHeader) / 4) << 12;
+    header->flags = ntohs(header->flags);
+    header->windowSize = 0xFFFF;
+    header->checksum = ntohs(tcp_calculate_checksum(header, conn, 0));
     ipSendPacket(conn->destIP, header, sizeof(TCPHeader), PROTOCOL_TCP, dev);
 }
 void closeTCP(TCPConnection* conn, EthernetDevice* dev)
@@ -92,32 +111,42 @@ void closeTCP(TCPConnection* conn, EthernetDevice* dev)
     conn->state = TCPState::CLOSING;
     tcpSendFinAck(conn, dev);
 }
-void tcpRecieve(TCPHeader* packet, uint8_t ip4[4], EthernetDevice* dev)
+void tcpRecieve(TCPHeader* packet, uint8_t ip4[4], size_t totalSize, EthernetDevice* dev)
 {
+    qemu_printf("TCP recieved packet\n");
+    size_t packetLen = totalSize - sizeof(TCPHeader);
     TCPConnection* conn = getTCP(packet, ip4);
-    size_t packetLen = ntohs(packet->windowSize);
-    conn->sequenceNumber = packet->ackNumber;
-    conn->ackNumber = packet->sequenceNumber + ((packetLen == 0) ? 1 : packetLen);
-    if (packet->ack && packet->syn)
+    conn->sequenceNumber = htonl(packet->ackNumber);
+    conn->ackNumber = htonl(packet->sequenceNumber) + ((packetLen == 0) ? 1 : packetLen);
+    qemu_printf("%d to %d\n", conn->remotePort, conn->localPort);
+    qemu_printf("%x\n", ntohs(packet->flags));
+    if ((ntohs(packet->flags) & (TCP_ACK | TCP_SYN)) == (TCP_ACK | TCP_SYN))
     {
+        qemu_printf("ACK/SYN\n");
         conn->state = TCPState::ESTABLISHED;
         tcpSendAck(conn, dev);
     }
-    else if (packet->ack && packet->psh)
+    else if ((ntohs(packet->flags) & (TCP_ACK | TCP_PSH)) == (TCP_ACK | TCP_PSH))
     {
-        conn->dataHandler((uint8_t*)packet + packet->dataOffset, packetLen);
+        qemu_printf("ACK/PSH\n");
+        for (size_t i = 0; i < tcpHandlers.size(); i++)
+            if (tcpHandlers[i].portNo == ntohs(packet->destPort))
+                tcpHandlers[i].handler(conn, (uint8_t*)packet + ((packet->flags & 0xF000) >> 10), 
+                    packetLen, dev);
         tcpSendAck(conn, dev);
     }
-    else if (packet->syn && packet->fin)
+    else if ((ntohs(packet->flags) & (TCP_ACK | TCP_FIN)) == (TCP_ACK | TCP_FIN))
     {
+        qemu_printf("ACK/FIN\n");
         if (conn->state == TCPState::ESTABLISHED)
             tcpSendFinAck(conn, dev);
         else
             tcpSendAck(conn, dev);
         conn->state = TCPState::CLOSED;
     }
-    else if (packet->syn)
+    else if (ntohs(packet->flags) & (TCP_SYN))
     {
+        qemu_printf("SYN\n");
         conn->state = TCPState::ESTABLISHED;
         tcpSendSynAck(conn, dev);
     }
@@ -126,16 +155,17 @@ void tcpSendData(TCPConnection* conn, const void* data, size_t len, EthernetDevi
 {
     TCPHeader* header = (TCPHeader*)malloc(sizeof(TCPHeader) + len);
     memset(header, 0, sizeof(TCPHeader));
-    header->psh = 1;
-    header->ack = 1;
+    header->flags = TCP_PSH | TCP_ACK;
     header->destPort = ntohs(conn->remotePort);
     header->sourcePort = ntohs(conn->localPort);
-    header->dataOffset = sizeof(TCPHeader);
-    header->windowSize = len;
-    header->checksum = tcp_calculate_checksum(header);
+    header->flags |= (sizeof(TCPHeader) / 4) << 12;
+    header->flags = ntohs(header->flags);
+    header->windowSize = 0xFFFF;
+    header->checksum = ntohs(tcp_calculate_checksum(header, conn, len));
     ipSendPacket(conn->destIP, header, sizeof(TCPHeader) + len, PROTOCOL_TCP, dev);
 }
 void initializeTCP()
 {
     tcpConnections = {};
+    tcpHandlers = {};
 }

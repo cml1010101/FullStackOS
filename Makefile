@@ -3,10 +3,11 @@ all: boot/bootx64.efi kernel/kernel.elf disk.img res/font.psf res/cursor.tga
 	mcopy -i disk.img kernel/kernel.elf :: -Do
 	mcopy -i disk.img res/font.psf ::/RES/ -Do
 	mcopy -i disk.img res/cursor.tga ::/RES/ -Do
+	mcopy -i disk.img res/index.html ::/RES/ -Do
 	sudo qemu-system-x86_64 -s -S -serial stdio -d cpu_reset -cpu qemu64 -drive \
 		if=pflash,format=raw,unit=0,file=/usr/share/OVMF/OVMF_CODE.fd,readonly=on \
 		-drive if=pflash,format=raw,unit=1,file=/usr/share/OVMF/OVMF_VARS.fd -hda disk.img \
-		-netdev user,id=net0 -device rtl8139,netdev=net0 \
+		-netdev user,id=net0,hostfwd=tcp:127.0.0.1:8080-:8080 -device rtl8139,netdev=net0 \
 		-object filter-dump,id=fd0,file=traffic.log,netdev=net0
 	cd boot && make clean
 	cd kernel && make clean

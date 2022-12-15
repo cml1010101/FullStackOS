@@ -95,3 +95,11 @@ extern "C" void sleep(uint64_t millis)
     running->asleep = true;
     while (running->sleepTimeout > scheduledCounter);
 }
+extern "C" void join(uint64_t pid)
+{
+    Thread* t = queue;
+    while (t->next && t->pid != pid) t = t->next;
+    running->joinTarget = t;
+    running->joined = true;
+    while (!running->joinTarget->done);
+}

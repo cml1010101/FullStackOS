@@ -8,7 +8,8 @@
 #define IP_IS_LAST_FRAGMENT 4
 #define PROTOCOL_UDP 17
 #define PROTOCOL_TCP 6
-const uint8_t zeroHardware[6] = {0, 0, 0, 0, 0, 0};
+extern Vector<ARPEntry> arpTable;
+const uint8_t zeroHardware[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 uint8_t flipByte(uint8_t byte, int num_bits)
 {
     uint8_t t = byte << (8 - num_bits);
@@ -32,6 +33,7 @@ uint16_t ip_calculate_checksum(IPPacket * packet) {
 void ipSendPacket(uint8_t* destIP, void* data, size_t len, uint8_t protocol,
     EthernetDevice* dev)
 {
+    qemu_printf("Sending IP Packet\n");
     IPPacket* packet = (IPPacket*)malloc(sizeof(IPPacket) + len);
     memset(packet, 0, sizeof(IPPacket));
     packet->version = IP_IPV4;
@@ -52,14 +54,12 @@ void ipSendPacket(uint8_t* destIP, void* data, size_t len, uint8_t protocol,
     packet->flagsFragmentPtr[0] = flipByte(packet->flagsFragmentPtr[0], 3);
     packet->headerChecksum = ntohs(ip_calculate_checksum(packet));
     int counter = 3;
-    while (!arpHas(destIP))
-    {
-        if (counter)
-        {
-            arpSendPacket(zeroHardware, destIP, dev);
-            counter--;
-        }
-    }
+    uint64_t rflags;
+    asm volatile ("sti");
+    if (!arpHas(destIP)) arpSendPacket(zeroHardware, destIP, dev);
+    while (!arpHas(destIP));
+    qemu_printf("Sending to %x:%x:%x:%x:%x:%x\n", arpFind(destIP)[0], arpFind(destIP)[1],
+        arpFind(destIP)[2], arpFind(destIP)[3], arpFind(destIP)[4], arpFind(destIP)[5]);
     sendEthernetPacket(arpFind(destIP), (uint8_t*)packet, ntohs(packet->length),
         ETHERNET_TYPE_IP4, dev);
 }
@@ -73,6 +73,7 @@ void ipHandlePacket(IPPacket* packet, EthernetDevice* dev)
     }
     if (packet->protocol == PROTOCOL_TCP)
     {
-        tcpRecieve((TCPHeader*)packet->data, packet->srcIP, dev);
+        tcpRecieve((TCPHeader*)packet->data, packet->srcIP, ntohs(packet->length)
+            - sizeof(IPPacket), dev);
     }
 }

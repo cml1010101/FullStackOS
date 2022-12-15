@@ -42,16 +42,18 @@ void RTL8139::handle()
     uint16_t isr = reads(RTL_ISR);
     if (isr & RTL_TOK)
     {
-        writes(RTL_ISR, RTL_TOK);
+        qemu_printf("Write\n");
         while (readl(RTL_TSD_BASE + (finishDescriptor * 4)) & (RTL_TSD_OWN | RTL_TSD_TOK)
             == RTL_TSD_BOTH && freeDescriptors < 4)
         {
             finishDescriptor = (finishDescriptor + 1) % 4;
             freeDescriptors;
         }
+        writes(RTL_ISR, RTL_TOK);
     }
     if (isr & RTL_ROK)
     {
+        qemu_printf("Read\n");
         do
         {
             uint8_t* rxPointer = (uint8_t*)(recieveBuffer + rxOffset);
@@ -118,7 +120,6 @@ RTL8139::RTL8139(PCIDevice* dev)
 }
 void RTL8139::sendPacket(Package* networkPackage)
 {
-    qemu_printf("Sending packet\n");
     while (freeDescriptors == 0);
     memcpy(txDescs[currentDescriptor].buffer, networkPackage->data, networkPackage->len);
     txDescs[currentDescriptor].packet_length = networkPackage->len;

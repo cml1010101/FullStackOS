@@ -25,24 +25,20 @@ void arpHandlePacket(ARPPacket* packet, size_t len, EthernetDevice* dev)
             memcpy(packet->dstProtocolAddr, destProtocolAddr, 4);
             packet->opcode = ntohs(ARP_REPLY);
             packet->hardwareAddrLen = 6;
-            packet->hardwareAddrLen = 4;
+            packet->protocolAddrLen = 4;
             packet->hardwareType = ntohs(HARDWARE_TYPE_ETHERNET);
             packet->protocol = ntohs(ETHERNET_TYPE_IP4);
             sendEthernetPacket(destHardwareAddr, (uint8_t*)packet, sizeof(ARPPacket),
                 ETHERNET_TYPE_ARP, dev);
         }
     }
-    arpTable.push({destHardwareAddr, destProtocolAddr});
+    arpTable.push({destProtocolAddr, destHardwareAddr});
 }
 void arpSendPacket(const uint8_t* destHardware, uint8_t* destProtocol, EthernetDevice* dev)
 {
-    qemu_printf("Sending arp packet\n");
     ARPPacket* packet = new ARPPacket;
     memcpy(packet->srcHardwareAddr, dev->getMAC(), 6);
-    packet->srcProtocolAddr[0] = 10;
-    packet->srcProtocolAddr[1] = 0;
-    packet->srcProtocolAddr[2] = 2;
-    packet->srcProtocolAddr[3] = 14;
+    memcpy(packet->srcProtocolAddr, getSourceIP(), 4);
     packet->hardwareType = ntohs(HARDWARE_TYPE_ETHERNET);
     packet->opcode = ntohs(ARP_REQUEST);
     packet->protocol = ntohs(ETHERNET_TYPE_IP4);
@@ -67,8 +63,13 @@ uint8_t* arpFind(uint8_t* ip)
 }
 bool arpHas(uint8_t* ip)
 {
+    qemu_printf("Looking for %d.%d.%d.%d\n", (uint64_t)ip[0], (uint64_t)ip[1], (uint64_t)ip[2],
+        (uint64_t)ip[3]);
     for (size_t i = 0; i < arpTable.size(); i++)
     {
+        qemu_printf("Comparing %d.%d.%d.%d to %d.%d.%d.%d\n",
+            ip[0], ip[1], ip[2], ip[3], arpTable[i].ip4[0], arpTable[i].ip4[1], arpTable[i].ip4[2],
+            arpTable[i].ip4[3]);
         if (memcmp(arpTable[i].ip4, ip, 4) == 0)
         {
             return true;
