@@ -144,7 +144,7 @@ char* itoa(int num, size_t base)
     while (num != 0)
     {
         int rem = num % base;
-        str[i++] = (rem > 9) ? (rem-10) + 'a' : rem + '0';
+        str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
         num = num / base;
     }
     if (isNegative)
@@ -170,6 +170,23 @@ extern "C" int memcmp(const void* a, const void* b, size_t len)
         if (a_str[i] - b_str[i]) return a_str[i] - b_str[i];
     }
     return 0;
+}
+extern "C" int strcmp(const char* a, const char* b)
+{
+    size_t i = 0;
+    while (a[i] && b[i])
+    {
+        if (a[i] - b[i]) return a[i] - b[i];
+        i++;
+    }
+    return a[i] - b[i];
+}
+extern "C" const char* strcat(const char* a, const char* b)
+{
+    char* out = new char[strlen(a) + strlen(b) + 1];
+    memcpy(out, a, strlen(a));
+    memcpy(out + strlen(a), b, strlen(b) + 1);
+    return out;
 }
 extern "C" void __cxa_pure_virtual()
 {

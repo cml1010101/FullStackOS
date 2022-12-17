@@ -6,15 +6,13 @@
 #define PROTOCOL_TCP 6
 struct __attribute__((packed)) IPPacket
 {
-    char versionIHLPtr[0];
-    uint8_t version:4;
     uint8_t ihl:4;
+    uint8_t version:4;
     uint8_t tos;
     uint16_t length;
     uint16_t id;
-    char flagsFragmentPtr[0];
-    uint8_t flags:3;
     uint8_t fragmentOffsetHigh:5;
+    uint8_t flags:3;
     uint8_t fragmentOffsetLow;
     uint8_t ttl;
     uint8_t protocol;

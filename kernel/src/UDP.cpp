@@ -19,7 +19,7 @@ uint16_t udpChecksum(UDPPacket * packet) {
 void udpSendPacket(uint8_t* destIP, uint16_t srcPort, uint16_t destPort, void* data, size_t len,
     EthernetDevice* dev)
 {
-    UDPPacket* packet = (UDPPacket*)malloc(len);
+    UDPPacket* packet = (UDPPacket*)malloc(sizeof(UDPPacket) + len);
     memset(packet, 0, sizeof(UDPPacket) + len);
     packet->srcPort = ntohs(srcPort);
     packet->destPort = ntohs(destPort);

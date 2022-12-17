@@ -3,6 +3,7 @@ Thread* running;
 Thread* queue;
 volatile size_t scheduledCounter;
 size_t nextPID;
+extern Heap* kernelHeap;
 extern PageDirectory* kernelDirectory;
 void _kill()
 {
@@ -26,8 +27,7 @@ Thread::Thread(void(*entry)(), const char* name, bool user)
     joined = false;
     done = false;
     dir = kernelDirectory;
-    heap = (Heap*)kmalloc(sizeof(Heap));
-    *heap = Heap(0x10000);
+    heap = kernelHeap;
     next = NULL;
 }
 void addThread(Thread* thread)

@@ -33,7 +33,6 @@ uint16_t ip_calculate_checksum(IPPacket * packet) {
 void ipSendPacket(uint8_t* destIP, void* data, size_t len, uint8_t protocol,
     EthernetDevice* dev)
 {
-    qemu_printf("Sending IP Packet\n");
     IPPacket* packet = (IPPacket*)malloc(sizeof(IPPacket) + len);
     memset(packet, 0, sizeof(IPPacket));
     packet->version = IP_IPV4;
@@ -42,31 +41,24 @@ void ipSendPacket(uint8_t* destIP, void* data, size_t len, uint8_t protocol,
     packet->flags = 0;
     packet->ttl = 64;
     packet->id = 0;
-    packet->length = len + sizeof(IPPacket);
     packet->fragmentOffsetHigh = 0;
     packet->fragmentOffsetLow = 0;
     packet->protocol = protocol;
     memcpy(packet->srcIP, getSourceIP(), 4);
     memcpy(packet->dstIP, destIP, 4);
-    memcpy((void*)packet + packet->ihl * 4, data, len);
+    memcpy((uint8_t*)packet + sizeof(IPPacket), data, len);
     packet->length = ntohs(len + sizeof(IPPacket));
-    packet->versionIHLPtr[0] = flipByte(packet->versionIHLPtr[0], 4);
-    packet->flagsFragmentPtr[0] = flipByte(packet->flagsFragmentPtr[0], 3);
     packet->headerChecksum = ntohs(ip_calculate_checksum(packet));
     int counter = 3;
-    uint64_t rflags;
     asm volatile ("sti");
     if (!arpHas(destIP)) arpSendPacket(zeroHardware, destIP, dev);
     while (!arpHas(destIP));
-    qemu_printf("Sending to %x:%x:%x:%x:%x:%x\n", arpFind(destIP)[0], arpFind(destIP)[1],
-        arpFind(destIP)[2], arpFind(destIP)[3], arpFind(destIP)[4], arpFind(destIP)[5]);
-    sendEthernetPacket(arpFind(destIP), (uint8_t*)packet, ntohs(packet->length),
+    qemu_printf("Checkpoint\n");
+    sendEthernetPacket(arpFind(destIP), (uint8_t*)packet, len + sizeof(IPPacket),
         ETHERNET_TYPE_IP4, dev);
 }
 void ipHandlePacket(IPPacket* packet, EthernetDevice* dev)
 {
-    packet->versionIHLPtr[0] = flipByte(packet->versionIHLPtr[0], 4);
-    packet->flagsFragmentPtr[0] = flipByte(packet->flagsFragmentPtr[0], 3);
     if (packet->protocol == PROTOCOL_UDP)
     {
         udpHandlePacket((UDPPacket*)packet->data, dev);

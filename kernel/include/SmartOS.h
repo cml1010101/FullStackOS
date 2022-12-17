@@ -48,6 +48,8 @@ char* uitoa(size_t num, size_t base);
 void memset(void* dest, uint8_t val, size_t count);
 void memcpy(void* dest, const void* src, size_t count);
 int memcmp(const void* a, const void* b, size_t count);
+int strcmp(const char* a, const char* b);
+const char* strcat(const char* a, const char* b);
 void* malloc(size_t size);
 void free(void* ptr);
 void sleep(uint64_t millis);
@@ -92,6 +94,12 @@ struct __attribute__((packed)) Package
 {
     void* data;
     uint64_t len;
+};
+struct InternetAddress
+{
+    uint8_t ipv4[4];
+    uint8_t ipv6[16];
+    uint8_t mac[6];
 };
 class EthernetDevice
 {

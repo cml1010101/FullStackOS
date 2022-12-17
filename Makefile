@@ -3,7 +3,8 @@ all: boot/bootx64.efi kernel/kernel.elf disk.img res/font.psf res/cursor.tga
 	mcopy -i disk.img kernel/kernel.elf :: -Do
 	mcopy -i disk.img res/font.psf ::/RES/ -Do
 	mcopy -i disk.img res/cursor.tga ::/RES/ -Do
-	mcopy -i disk.img res/index.html ::/RES/ -Do
+	mcopy -i disk.img res/index.htm ::/RES/ -Do
+	mcopy -i disk.img res/error.htm ::/RES/ -Do
 	sudo qemu-system-x86_64 -s -S -serial stdio -d cpu_reset -cpu qemu64 -drive \
 		if=pflash,format=raw,unit=0,file=/usr/share/OVMF/OVMF_CODE.fd,readonly=on \
 		-drive if=pflash,format=raw,unit=1,file=/usr/share/OVMF/OVMF_VARS.fd -hda disk.img \

@@ -4,6 +4,7 @@
 #ifdef __cplusplus
 struct HeapEntry
 {
+    uint64_t magic; // 0xCAFEBEEFBEEFCAFE
     bool free;
     size_t size;
     struct HeapEntry* next;

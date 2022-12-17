@@ -8,29 +8,14 @@
 #include <TCP.h>
 #include <Scheduler.h>
 Vector<EthernetDevice*> ethernetDevices;
-Vector<Package*> ethernetPackages;
 uint8_t sourceIP[4];
 const uint8_t _broadcastMAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 const uint8_t _broadcastIP4[4] = {0xFF, 0xFF, 0xFF, 0xFF};
-void ethernetPeriodic()
-{
-    while (true)
-    {
-        while (ethernetPackages.size() != 0)
-        {
-            ethernetDevices[0]->sendPacket(ethernetPackages.popTop());
-        }
-        sleep(1);
-    }
-}
 void initializeEthernet()
 {
-    ethernetPackages = {};
     memset(sourceIP, 0x0, 4);
     ethernetDevices = {};
     initializeARP();
-    Thread* thread = new Thread(ethernetPeriodic, "ETHERNET_PERIODIC");
-    addThread(thread);
     initializeTCP();
     for (size_t i = 0; i < pciDevices.size(); i++)
     {
@@ -60,19 +45,6 @@ void sendEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t
     pkg->data = frame;
     pkg->len = len + sizeof(EthernetFrame);
     dev->sendPacket(pkg);
-}
-void addEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t protocol,
-    EthernetDevice* dev)
-{
-    EthernetFrame* frame = (EthernetFrame*)malloc(sizeof(EthernetFrame) + len);
-    memcpy(frame->srcMac, dev->getMAC(), 6);
-    memcpy(frame->destMac, dest, 6);
-    memcpy(frame->data, data, len);
-    frame->type = ntohs(protocol);
-    Package* pkg = new Package;
-    pkg->data = frame;
-    pkg->len = len + sizeof(EthernetFrame);
-    ethernetPackages.push(pkg);
 }
 void recieveEthernetPacket(EthernetFrame* frame, size_t len, EthernetDevice* dev)
 {

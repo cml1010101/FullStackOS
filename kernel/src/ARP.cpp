@@ -63,13 +63,8 @@ uint8_t* arpFind(uint8_t* ip)
 }
 bool arpHas(uint8_t* ip)
 {
-    qemu_printf("Looking for %d.%d.%d.%d\n", (uint64_t)ip[0], (uint64_t)ip[1], (uint64_t)ip[2],
-        (uint64_t)ip[3]);
     for (size_t i = 0; i < arpTable.size(); i++)
     {
-        qemu_printf("Comparing %d.%d.%d.%d to %d.%d.%d.%d\n",
-            ip[0], ip[1], ip[2], ip[3], arpTable[i].ip4[0], arpTable[i].ip4[1], arpTable[i].ip4[2],
-            arpTable[i].ip4[3]);
         if (memcmp(arpTable[i].ip4, ip, 4) == 0)
         {
             return true;

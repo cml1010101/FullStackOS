@@ -85,7 +85,7 @@ extern "C" void kernel_main(BootData data)
         }
     }
     if (ideDriver) registerDriver(ideDriver);
-    fileSystems = Vector<FileSystem*>();
+    fileSystems = {};
     for (size_t i = 0; i < storageDevices.size(); i++)
     {
         if (storageDevices[i]->getSize())
@@ -93,6 +93,8 @@ extern "C" void kernel_main(BootData data)
             scanDevice(storageDevices[i]);
         }
     }
+    char* d = (char*)malloc(5000);
+    qemu_printf("Initializing Ethernet\n");
     initializeEthernet();
     initializeHTMLFrontend();
     while (getSourceIP()[0] == 0);
