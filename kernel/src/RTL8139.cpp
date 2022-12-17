@@ -42,12 +42,6 @@ void RTL8139::handle()
     uint16_t isr = reads(RTL_ISR);
     if (isr & RTL_TOK)
     {
-        while (readl(RTL_TSD_BASE + (finishDescriptor * 4)) & (RTL_TSD_OWN | RTL_TSD_TOK)
-            == RTL_TSD_BOTH && freeDescriptors < 4)
-        {
-            finishDescriptor = (finishDescriptor + 1) % 4;
-            freeDescriptors++;
-        }
         writes(RTL_ISR, RTL_TOK);
     }
     if (isr & RTL_ROK)
@@ -104,22 +98,16 @@ RTL8139::RTL8139(PCIDevice* dev)
     writel(RTL_RCR, 0xFF);
     writeb(RTL_CR, 0xC);
     rxOffset = 0;
-    finishDescriptor = 0;
-    freeDescriptors = 4;
     currentDescriptor = 0;
 }
 void RTL8139::sendPacket(Package* networkPackage)
 {
-    while (readl(RTL_TSD_BASE + (currentDescriptor * 4)) & (RTL_TSD_OWN | RTL_TSD_TOK)
-            == RTL_TSD_BOTH);
     memcpy(txDescs[currentDescriptor].buffer, networkPackage->data, networkPackage->len);
     txDescs[currentDescriptor].packet_length = networkPackage->len;
     size_t prevDesc = currentDescriptor;
     currentDescriptor = (currentDescriptor + 1) % 4;
-    freeDescriptors--;
     writel(RTL_TSAD_BASE + prevDesc * 4, txDescs[prevDesc].buffer_phys);
-	writel(RTL_TSD_BASE + prevDesc * 4, (txDescs[prevDesc].packet_length & 0xfff)
-        | (48 << 16));
+	writel(RTL_TSD_BASE + prevDesc * 4, (txDescs[prevDesc].packet_length & 0xfff));
 }
 Package* RTL8139::recievePacket()
 {

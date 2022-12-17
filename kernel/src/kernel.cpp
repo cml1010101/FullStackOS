@@ -93,7 +93,6 @@ extern "C" void kernel_main(BootData data)
             scanDevice(storageDevices[i]);
         }
     }
-    char* d = (char*)malloc(5000);
     qemu_printf("Initializing Ethernet\n");
     initializeEthernet();
     initializeHTMLFrontend();

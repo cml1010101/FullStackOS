@@ -8,7 +8,11 @@ Vector<TCPHandler> tcpHandlers;
 uint16_t tcp_calculate_checksum(TCPHeader* packet, TCPConnection* conn, size_t dataLength)
 {
     size_t totalLength = dataLength + sizeof(TCPHeader);
-    void* tmp = malloc(sizeof(TCPHeader) + sizeof(TCPPseudoHeader) + dataLength);
+    void* tmp = malloc(((sizeof(TCPHeader) + sizeof(TCPPseudoHeader) + dataLength + 1) / 2) * 2);
+    if (dataLength & 1)
+    {
+        ((uint8_t*)tmp)[sizeof(TCPHeader) + sizeof(TCPPseudoHeader) + dataLength] = 0;
+    }
     TCPPseudoHeader* phdr = (TCPPseudoHeader*)tmp;
     phdr->protocol = PROTOCOL_TCP;
     phdr->rsv = 0;
@@ -17,7 +21,7 @@ uint16_t tcp_calculate_checksum(TCPHeader* packet, TCPConnection* conn, size_t d
     memcpy(phdr->srcIP, getSourceIP(), 4);
     memcpy(tmp + sizeof(TCPPseudoHeader), packet, sizeof(TCPHeader));
     memcpy(tmp + sizeof(TCPPseudoHeader) + sizeof(TCPHeader), &packet[1], dataLength);
-    int arraySize = (sizeof(TCPHeader) + sizeof(TCPPseudoHeader) + dataLength) / 2;
+    int arraySize = (sizeof(TCPHeader) + sizeof(TCPPseudoHeader) + dataLength + 1) / 2;
     uint16_t* array = (uint16_t*)tmp;
     uint32_t sum = 0;
     for (int i = 0; i < arraySize; i++)
@@ -34,7 +38,6 @@ Vector<TCPConnection*> tcpConnections;
 void tcpSendSyn(TCPConnection* conn, EthernetDevice* dev);
 TCPConnection* newTCP(uint16_t localPort, uint8_t* destIP, uint16_t destPort)
 {
-    qemu_printf("Creating TCP Connection\n");
     TCPConnection* conn = new TCPConnection;
     conn->localPort = localPort;
     conn->remotePort = destPort;
@@ -75,6 +78,7 @@ void tcpSend(TCPConnection* conn, EthernetDevice* dev, uint16_t flags, void* dat
     memcpy(p, data, len);
     header->checksum = ntohs(tcp_calculate_checksum(header, conn,
         (flags & TCP_SYN ? 4 : 0) + len));
+    qemu_printf("Sending some data over TCP\n");
     ipSendPacket(conn->destIP, header, sizeof(TCPHeader) + (flags & TCP_SYN ? 4 : 0) + len,
         PROTOCOL_TCP, dev);
 }

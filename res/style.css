@@ -1,0 +1,16 @@
+.page-title
+{
+    text-align: center;
+}
+.header
+{
+    margin: 0%;
+    padding: 40px;
+    background-color: lightblue;
+}
+.header-item
+{
+    color: white;
+    padding: 5px;
+    margin: 50px;
+}
