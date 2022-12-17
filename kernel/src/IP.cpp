@@ -53,7 +53,6 @@ void ipSendPacket(uint8_t* destIP, void* data, size_t len, uint8_t protocol,
     asm volatile ("sti");
     if (!arpHas(destIP)) arpSendPacket(zeroHardware, destIP, dev);
     while (!arpHas(destIP));
-    qemu_printf("Checkpoint\n");
     sendEthernetPacket(arpFind(destIP), (uint8_t*)packet, len + sizeof(IPPacket),
         ETHERNET_TYPE_IP4, dev);
 }

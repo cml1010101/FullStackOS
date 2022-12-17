@@ -1,7 +1,8 @@
 #include <HTTP.h>
 char* htmlData;
-size_t htmlSize, notFoundSize, styleSize;
+size_t htmlSize, notFoundSize, styleSize, scriptSize, consoleSize;
 char* nfData, *style;
+char* script, *console;
 HTTPRequest parseHTTPRequest(const void* dat, size_t len)
 {
     qemu_printf("Parsing HTTP Request\n");
@@ -58,8 +59,8 @@ const char* makeHTTPPacket(Vector<const char*> packetOptions, const char* conten
 }
 void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevice* dev)
 {
-    qemu_printf("Recieved TCP Data\n");
     HTTPRequest request = parseHTTPRequest(data, len);
+    qemu_printf("Crafting response\n");
     if (request.type == RequestType::GET)
     {
         if (strcmp(request.requestLocation, "/") == 0)
@@ -75,7 +76,6 @@ void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevi
             options.push("Content-Type: text/html");
             options.push("Connection: Closed");
             const char* packet = makeHTTPPacket(options, htmlData);
-            qemu_printf("Sending %s\n", packet);
             tcpSendData(conn, packet, strlen(packet), dev);
         }
         else if (strcmp(request.requestLocation, "/style.css") == 0)
@@ -91,7 +91,36 @@ void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevi
             options.push("Content-Type: text/css");
             options.push("Connection: Closed");
             const char* packet = makeHTTPPacket(options, style);
-            qemu_printf("Sending %s\n", packet);
+            tcpSendData(conn, packet, strlen(packet), dev);
+        }
+        else if (strcmp(request.requestLocation, "/console.htm") == 0)
+        {
+            Vector<const char*> options = {};
+            options.push("HTTP/1.1 200 OK");
+            options.push("Date: Mon, 27 Jul 2009 12:28:53 GMT");
+            options.push("Server: Apache/2.2.14 (Win32)");
+            options.push("Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT");
+            char* str = new char[50];
+            memcpy(str, itoa(consoleSize, 10), 50);
+            options.push(strcat("Content-Length: ", str));
+            options.push("Content-Type: text/html");
+            options.push("Connection: Closed");
+            const char* packet = makeHTTPPacket(options, console);
+            tcpSendData(conn, packet, strlen(packet), dev);
+        }
+        else if (strcmp(request.requestLocation, "/console.js") == 0)
+        {
+            Vector<const char*> options = {};
+            options.push("HTTP/1.1 200 OK");
+            options.push("Date: Mon, 27 Jul 2009 12:28:53 GMT");
+            options.push("Server: Apache/2.2.14 (Win32)");
+            options.push("Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT");
+            char* str = new char[50];
+            memcpy(str, itoa(scriptSize, 10), 50);
+            options.push(strcat("Content-Length: ", str));
+            options.push("Content-Type: text/js");
+            options.push("Connection: Closed");
+            const char* packet = makeHTTPPacket(options, script);
             tcpSendData(conn, packet, strlen(packet), dev);
         }
         else
@@ -107,9 +136,12 @@ void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevi
             options.push("Content-Type: text/html");
             options.push("Connection: Closed");
             const char* packet = makeHTTPPacket(options, nfData);
-            qemu_printf("Sending %s\n", packet);
             tcpSendData(conn, packet, strlen(packet), dev);
         }
+    }
+    else
+    {
+        qemu_printf("Recieved other type of HTTP request: %s\n", request.data);
     }
 }
 void initializeHTMLFrontend()
@@ -129,6 +161,16 @@ void initializeHTMLFrontend()
     style = new char[styleSize + 1];
     file->read(style, styleSize);
     style[styleSize] = 0;
+    file = fileSystems[0]->open("/RES/CONSOLE.HTM");
+    consoleSize = file->getSize();
+    console = new char[consoleSize + 1];
+    file->read(console, consoleSize);
+    console[consoleSize] = 0;
+    file = fileSystems[0]->open("/RES/CONSOLE.JS");
+    scriptSize = file->getSize();
+    script = new char[scriptSize + 1];
+    file->read(script, scriptSize);
+    script[scriptSize] = 0;
     TCPHandler handler;
     handler.portNo = 8080;
     handler.handler = httpHandler;

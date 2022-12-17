@@ -1,5 +1,6 @@
 #include <Heap.h>
 #include <MMU.h>
+size_t totalAllocated;
 Heap* currentHeap;
 Heap::Heap(size_t size)
 {
@@ -9,6 +10,7 @@ Heap::Heap(size_t size)
     first->free = true;
     first->size = size - sizeof(HeapEntry);
     first->next = NULL;
+    totalAllocated = 0;
 }
 void Heap::split(HeapEntry* entry, size_t size)
 {
@@ -50,10 +52,8 @@ void Heap::free(void* ptr)
 void* Heap::malloc(size_t size)
 {
     if (size == 0) return NULL;
-    if (size == 0)
-    {
-        return NULL;
-    }
+    totalAllocated += size;
+    qemu_printf("Allocating %d bytes: %d total\n", size, totalAllocated);
     HeapEntry* entry = first;
     void* result;
     while ((entry->size < size || !entry->free) && entry->next)

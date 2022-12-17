@@ -78,7 +78,6 @@ void tcpSend(TCPConnection* conn, EthernetDevice* dev, uint16_t flags, void* dat
     memcpy(p, data, len);
     header->checksum = ntohs(tcp_calculate_checksum(header, conn,
         (flags & TCP_SYN ? 4 : 0) + len));
-    qemu_printf("Sending some data over TCP\n");
     ipSendPacket(conn->destIP, header, sizeof(TCPHeader) + (flags & TCP_SYN ? 4 : 0) + len,
         PROTOCOL_TCP, dev);
 }

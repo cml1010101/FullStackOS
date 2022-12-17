@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SmartOS - Console</title>
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="header">
+            <a class="header-item" href="/">Home</a>
+            <a class="header-item" href="/console.htm">Console</a>
+        </div>
+        <div class="console">
+            <p id="console-content"></p>
+        </div>
+        <form method="POST">
+            <input id="commandline" name="command_line" type="text" placeholder="Command Line">
+            <input id="commandbutton" type="submit" name="command_button" 
+                value="confirm" onclick="showVal();">
+        </form>
+        <script src="console.js"></script>
+    </body>
+</html>
