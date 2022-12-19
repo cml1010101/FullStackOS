@@ -231,6 +231,7 @@ protected:
 public:
     virtual File* open(const char* path) = 0;
     virtual Vector<File*> list(const char* path) = 0;
+    virtual bool exists(const char* path) = 0;
     FileSystem() = default;
     virtual const char* getName() = 0;
 };
@@ -259,7 +260,9 @@ public:
     }
     inline void read(void* dest, size_t size)
     {
+        void* test = malloc(50001);
         fileSystem->read(this, dest, size);
+        test = malloc(50002);
     }
     inline void write(const void* src, size_t size)
     {

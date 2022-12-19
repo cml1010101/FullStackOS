@@ -55,9 +55,11 @@ void ipSendPacket(uint8_t* destIP, void* data, size_t len, uint8_t protocol,
     while (!arpHas(destIP));
     sendEthernetPacket(arpFind(destIP), (uint8_t*)packet, len + sizeof(IPPacket),
         ETHERNET_TYPE_IP4, dev);
+    free(packet);
 }
 void ipHandlePacket(IPPacket* packet, EthernetDevice* dev)
 {
+    qemu_printf("IP Handling Packet\n");
     if (packet->protocol == PROTOCOL_UDP)
     {
         udpHandlePacket((UDPPacket*)packet->data, dev);

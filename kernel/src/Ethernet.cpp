@@ -45,13 +45,14 @@ void sendEthernetPacket(const uint8_t* dest, uint8_t* data, size_t len, uint16_t
     pkg->data = frame;
     pkg->len = len + sizeof(EthernetFrame);
     dev->sendPacket(pkg);
+    free(pkg->data);
+    free(pkg);
 }
 void recieveEthernetPacket(EthernetFrame* frame, size_t len, EthernetDevice* dev)
 {
-    len -= sizeof(EthernetFrame);
     if (ntohs(frame->type) == ETHERNET_TYPE_ARP)
     {
-        arpHandlePacket((ARPPacket*)frame->data, len, dev);
+        arpHandlePacket((ARPPacket*)frame->data, len - sizeof(EthernetFrame), dev);
     }
     if (ntohs(frame->type) == ETHERNET_TYPE_IP4)
     {

@@ -28,6 +28,7 @@ uint16_t tcp_calculate_checksum(TCPHeader* packet, TCPConnection* conn, size_t d
     {
         sum += ntohs(array[i]);
     }
+    free(tmp);
     uint32_t carry = sum >> 16;
     sum = sum & 0x0000ffff;
     sum = sum + carry;
@@ -80,6 +81,7 @@ void tcpSend(TCPConnection* conn, EthernetDevice* dev, uint16_t flags, void* dat
         (flags & TCP_SYN ? 4 : 0) + len));
     ipSendPacket(conn->destIP, header, sizeof(TCPHeader) + (flags & TCP_SYN ? 4 : 0) + len,
         PROTOCOL_TCP, dev);
+    free(header);
 }
 void tcpSendSyn(TCPConnection* conn, EthernetDevice* dev)
 {

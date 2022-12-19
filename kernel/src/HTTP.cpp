@@ -1,4 +1,5 @@
 #include <HTTP.h>
+#include <Shell.h>
 char* htmlData;
 size_t htmlSize, notFoundSize, styleSize, scriptSize, consoleSize;
 char* nfData, *style;
@@ -36,7 +37,13 @@ HTTPRequest parseHTTPRequest(const void* dat, size_t len)
             }
             else if (memcmp(option, "POST", 4) == 0)
             {
-                request.type == RequestType::POST;
+                request.type = RequestType::POST;
+                size_t k = 0;
+                while (option[k + 4] != ' ') k++;
+                char* loc = new char[k + 1];
+                loc[k] = 0;
+                memcpy(loc, option + 4, k);
+                request.requestLocation = loc;
             }
         }
     }
@@ -77,51 +84,40 @@ void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevi
             options.push("Connection: Closed");
             const char* packet = makeHTTPPacket(options, htmlData);
             tcpSendData(conn, packet, strlen(packet), dev);
+            free(str);
         }
-        else if (strcmp(request.requestLocation, "/style.css") == 0)
+        else if (fileSystems[0]->exists(strcat("/res", request.requestLocation)))
         {
             Vector<const char*> options = {};
             options.push("HTTP/1.1 200 OK");
             options.push("Date: Mon, 27 Jul 2009 12:28:53 GMT");
             options.push("Server: Apache/2.2.14 (Win32)");
             options.push("Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT");
-            char* str = new char[50];
-            memcpy(str, itoa(styleSize, 10), 50);
-            options.push(strcat("Content-Length: ", str));
-            options.push("Content-Type: text/css");
+            const char* type = "html";
+            if (request.requestLocation[strlen(request.requestLocation) - 1] == 's'
+                && request.requestLocation[strlen(request.requestLocation) - 2] == 's'
+                && request.requestLocation[strlen(request.requestLocation) - 3] == 'c')
+            {
+                type = "css";
+            }
+            if (request.requestLocation[strlen(request.requestLocation) - 1] == 's'
+                && request.requestLocation[strlen(request.requestLocation) - 2] == 'j')
+            {
+                type = "js";
+            }
+            options.push(strcat("Content-Type: text/", type));
             options.push("Connection: Closed");
-            const char* packet = makeHTTPPacket(options, style);
-            tcpSendData(conn, packet, strlen(packet), dev);
-        }
-        else if (strcmp(request.requestLocation, "/console.htm") == 0)
-        {
-            Vector<const char*> options = {};
-            options.push("HTTP/1.1 200 OK");
-            options.push("Date: Mon, 27 Jul 2009 12:28:53 GMT");
-            options.push("Server: Apache/2.2.14 (Win32)");
-            options.push("Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT");
-            char* str = new char[50];
-            memcpy(str, itoa(consoleSize, 10), 50);
-            options.push(strcat("Content-Length: ", str));
-            options.push("Content-Type: text/html");
-            options.push("Connection: Closed");
-            const char* packet = makeHTTPPacket(options, console);
-            tcpSendData(conn, packet, strlen(packet), dev);
-        }
-        else if (strcmp(request.requestLocation, "/console.js") == 0)
-        {
-            Vector<const char*> options = {};
-            options.push("HTTP/1.1 200 OK");
-            options.push("Date: Mon, 27 Jul 2009 12:28:53 GMT");
-            options.push("Server: Apache/2.2.14 (Win32)");
-            options.push("Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT");
+            File* file = fileSystems[0]->open(strcat("/res", request.requestLocation));
+            scriptSize = file->getSize();
+            script = new char[scriptSize + 1];
+            file->read(script, scriptSize);
+            script[scriptSize] = 0;
             char* str = new char[50];
             memcpy(str, itoa(scriptSize, 10), 50);
             options.push(strcat("Content-Length: ", str));
-            options.push("Content-Type: text/js");
-            options.push("Connection: Closed");
             const char* packet = makeHTTPPacket(options, script);
             tcpSendData(conn, packet, strlen(packet), dev);
+            free(str);
         }
         else
         {
@@ -137,11 +133,47 @@ void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevi
             options.push("Connection: Closed");
             const char* packet = makeHTTPPacket(options, nfData);
             tcpSendData(conn, packet, strlen(packet), dev);
+            free(str);
         }
     }
     else
     {
         qemu_printf("Recieved other type of HTTP request: %s\n", request.data);
+        size_t j = 0, k = 0;
+        char* command;
+        for (size_t i = 0; i < request.dataLength; i++)
+        {
+            if (request.data[i] == '"')
+            {
+                if (k == 2)
+                {
+                    j = i + 1;
+                }
+                else if (k == 3)
+                {
+                    command = new char[i - j + 1];
+                    command[i - j] = 0;
+                    memcpy(command, request.data + j, i - j);
+                }
+                k++;
+            }
+        }
+        Vector<const char*> options = {};
+        const char* resp = handleShell(command);
+        if (resp == NULL) return;
+        const char* response = strcat("{\"response\":\"", strcat(resp, "\"}"));
+        options.push("HTTP/1.1 200 OK");
+        options.push("Date: Mon, 27 Jul 2009 12:28:53 GMT");
+        options.push("Server: Apache/2.2.14 (Win32)");
+        options.push("Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT");
+        char* str = new char[50];
+        memcpy(str, itoa(strlen(response), 10), 50);
+        options.push(strcat("Content-Length: ", str));
+        options.push("Content-Type: application/json");
+        options.push("Connection: Closed");
+        const char* packet = makeHTTPPacket(options, response);
+        tcpSendData(conn, packet, strlen(packet), dev);
+        free(str);
     }
 }
 void initializeHTMLFrontend()
@@ -156,21 +188,6 @@ void initializeHTMLFrontend()
     nfData = new char[notFoundSize + 1];
     file->read(nfData, notFoundSize);
     nfData[notFoundSize] = 0;
-    file = fileSystems[0]->open("/RES/STYLE.CSS");
-    styleSize = file->getSize();
-    style = new char[styleSize + 1];
-    file->read(style, styleSize);
-    style[styleSize] = 0;
-    file = fileSystems[0]->open("/RES/CONSOLE.HTM");
-    consoleSize = file->getSize();
-    console = new char[consoleSize + 1];
-    file->read(console, consoleSize);
-    console[consoleSize] = 0;
-    file = fileSystems[0]->open("/RES/CONSOLE.JS");
-    scriptSize = file->getSize();
-    script = new char[scriptSize + 1];
-    file->read(script, scriptSize);
-    script[scriptSize] = 0;
     TCPHandler handler;
     handler.portNo = 8080;
     handler.handler = httpHandler;

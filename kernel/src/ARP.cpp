@@ -49,6 +49,7 @@ void arpSendPacket(const uint8_t* destHardware, uint8_t* destProtocol, EthernetD
     sendEthernetPacket(broadcastMAC,
         (uint8_t*)packet, sizeof(ARPPacket),
         ETHERNET_TYPE_ARP, dev);
+    free(packet);
 }
 uint8_t* arpFind(uint8_t* ip)
 {

@@ -85,8 +85,7 @@ void initializeScheduler()
     running->joined = false;
     running->done = false;
     running->dir = kernelDirectory->clone();
-    running->heap = (Heap*)kmalloc(sizeof(Heap));
-    *running->heap = Heap(0x10000);
+    running->heap = kernelHeap;
     running->next = NULL;
 }
 extern "C" void sleep(uint64_t millis)

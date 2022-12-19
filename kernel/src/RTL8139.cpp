@@ -2,6 +2,8 @@
 #include <MMU.h>
 #include <IRQ.h>
 #include <Ethernet.h>
+#include <Heap.h>
+extern Heap* kernelHeap;
 extern PageDirectory* kernelDirectory;
 RTL8139* defaultRTL8139;
 Package tmpPackage;
@@ -51,7 +53,7 @@ void RTL8139::handle()
             uint8_t* rxPointer = (uint8_t*)(recieveBuffer + rxOffset);
             uint16_t packetLength = *(uint16_t*)(rxPointer + 2);
             writes(RTL_ISR, RTL_ROK);
-            uint8_t* packetBuffer = new uint8_t[packetLength];
+            uint8_t* packetBuffer = (uint8_t*)malloc(packetLength);
             memcpy(packetBuffer, rxPointer, packetLength);
             rxOffset = (rxOffset + packetLength + 4 + 3) & ~0x3;
             if(rxOffset > RX_BUF_SIZE)

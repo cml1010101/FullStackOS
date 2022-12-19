@@ -4,9 +4,9 @@
 #ifdef __cplusplus
 struct HeapEntry
 {
-    uint64_t magic; // 0xCAFEBEEFBEEFCAFE
-    bool free;
-    size_t size;
+    size_t checksum;
+    size_t free: 1;
+    size_t size: 63;
     struct HeapEntry* next;
 };
 class Heap
@@ -20,6 +20,7 @@ public:
     Heap() = default;
     Heap(size_t size);
     void* malloc(size_t size);
+    void summary();
     void free(void* ptr);
 };
 void setCurrentHeap(Heap* heap);

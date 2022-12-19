@@ -26,10 +26,12 @@ void udpSendPacket(uint8_t* destIP, uint16_t srcPort, uint16_t destPort, void* d
     packet->length = ntohs(len);
     packet->checksum = 0;
     memcpy(packet->data, data, len);
-    ipSendPacket(destIP, packet, len, PROTOCOL_UDP, dev);
+    ipSendPacket(destIP, packet, len + sizeof(UDPPacket), PROTOCOL_UDP, dev);
+    free(packet);
 }
 void udpHandlePacket(UDPPacket* packet, EthernetDevice* dev)
 {
+    qemu_printf("UDP Recieved packet\n");
     uint16_t destPort = ntohs(packet->destPort);
     uint16_t length = ntohs(packet->length);
     if (ntohs(packet->destPort) == 68)

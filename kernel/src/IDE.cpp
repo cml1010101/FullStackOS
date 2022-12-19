@@ -302,7 +302,7 @@ void IDEDevice::readSectors(uint64_t lba, void* dest, size_t numSectors)
             for (size_t i = 0; i < sectors; i++)
             {
                 channel->poll(true);
-                asm volatile ("rep insw":: "c"(256), "d"(channel->base), "D"(dest + i * 512));
+                for (size_t j = 0; j < 256; j++) ((uint16_t*)(dest + i * 512))[j] = inw(channel->base);
             }
             cmd = ATA_CMD_CACHE_FLUSH;
             if (mode == 2) cmd = ATA_CMD_CACHE_FLUSH_EXT;

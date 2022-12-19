@@ -1,6 +1,8 @@
 #include <DHCP.h>
 #include <Ethernet.h>
 #include <UDP.h>
+#include <Heap.h>
+extern Heap* kernelHeap;
 #define DHCP_REQUEST 1
 #define DHCP_REPLY 2
 #define DHCP_TRANSACTION_IDENTIFIER 0x55555555
@@ -51,6 +53,7 @@ void makeDHCPPacket(DHCPPacket* packet, uint8_t msgType, uint8_t* ip,
 }
 void dhcpDiscover(EthernetDevice* dev)
 {
+    qemu_printf("Discovering\n");
     uint8_t requestIP[4];
     uint8_t destIP[4];
     memset(requestIP, 0x0, 4);
@@ -59,6 +62,7 @@ void dhcpDiscover(EthernetDevice* dev)
     memset(packet, 0, sizeof(DHCPPacket));
     makeDHCPPacket(packet, 1, requestIP, dev);
     udpSendPacket(destIP, 68, 67, packet, sizeof(DHCPPacket), dev);
+    free(packet);
 }
 void dhcpRequest(uint8_t* ip, EthernetDevice* dev)
 {
@@ -68,6 +72,7 @@ void dhcpRequest(uint8_t* ip, EthernetDevice* dev)
     memset(packet, 0, sizeof(DHCPPacket));
     makeDHCPPacket(packet, 3, ip, dev);
     udpSendPacket(destIP, 68, 67, packet, sizeof(DHCPPacket), dev);
+    free(packet);
 }
 void* getDHCPOptions(DHCPPacket* packet, uint8_t type) {
     uint8_t * options = packet->options + 4;
@@ -90,6 +95,7 @@ void dhcpHandlePacket(DHCPPacket* packet, EthernetDevice* dev)
     uint8_t* options = packet->options + 4;
     if (packet->op == DHCP_REPLY)
     {
+        qemu_printf("DHCP recieved packets\n");
         uint8_t* type = (uint8_t*)getDHCPOptions(packet, 53);
         if(*type == 2)
         {
@@ -97,6 +103,7 @@ void dhcpHandlePacket(DHCPPacket* packet, EthernetDevice* dev)
         }
         else if (*type == 5)
         {
+            qemu_printf("Recieved dhcp address\n");
             setSourceIP((uint8_t*)&packet->your_ip);
         }
     }

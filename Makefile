@@ -1,8 +1,6 @@
-all: boot/bootx64.efi kernel/kernel.elf disk.img res/font.psf res/cursor.tga
+all: boot/bootx64.efi kernel/kernel.elf disk.img
 	mcopy -i disk.img boot/bootx64.efi ::/EFI/BOOT/ -Do
 	mcopy -i disk.img kernel/kernel.elf :: -Do
-	mcopy -i disk.img res/font.psf ::/RES/ -Do
-	mcopy -i disk.img res/cursor.tga ::/RES/ -Do
 	mcopy -i disk.img res/index.htm ::/RES/ -Do
 	mcopy -i disk.img res/error.htm ::/RES/ -Do
 	mcopy -i disk.img res/style.css ::/RES/ -Do

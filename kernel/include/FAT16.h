@@ -30,6 +30,7 @@ private:
 public:
     File* open(const char* path);
     Vector<File*> list(const char* path);
+    bool exists(const char* path);
     FAT16(StorageDevice* dev, size_t offset);
     const char* getName();
 };
