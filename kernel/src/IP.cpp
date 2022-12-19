@@ -59,7 +59,6 @@ void ipSendPacket(uint8_t* destIP, void* data, size_t len, uint8_t protocol,
 }
 void ipHandlePacket(IPPacket* packet, EthernetDevice* dev)
 {
-    qemu_printf("IP Handling Packet\n");
     if (packet->protocol == PROTOCOL_UDP)
     {
         udpHandlePacket((UDPPacket*)packet->data, dev);

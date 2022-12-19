@@ -188,6 +188,12 @@ extern "C" const char* strcat(const char* a, const char* b)
     memcpy(out + strlen(a), b, strlen(b) + 1);
     return out;
 }
+extern "C" const char* substr(const char* a, size_t end)
+{
+    char* out = new char[end];
+    memcpy(out, a, end);
+    return out;
+}
 extern "C" void __cxa_pure_virtual()
 {
 }

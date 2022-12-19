@@ -6,7 +6,6 @@ char* nfData, *style;
 char* script, *console;
 HTTPRequest parseHTTPRequest(const void* dat, size_t len)
 {
-    qemu_printf("Parsing HTTP Request\n");
     const char* data = (const char*)dat;
     HTTPRequest request;
     size_t j = 0, i;
@@ -67,7 +66,6 @@ const char* makeHTTPPacket(Vector<const char*> packetOptions, const char* conten
 void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevice* dev)
 {
     HTTPRequest request = parseHTTPRequest(data, len);
-    qemu_printf("Crafting response\n");
     if (request.type == RequestType::GET)
     {
         if (strcmp(request.requestLocation, "/") == 0)
@@ -138,12 +136,12 @@ void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevi
     }
     else
     {
-        qemu_printf("Recieved other type of HTTP request: %s\n", request.data);
-        size_t j = 0, k = 0;
+        size_t j = 0, k = 0, c = 0;
         char* command;
+        bool backslash;
         for (size_t i = 0; i < request.dataLength; i++)
         {
-            if (request.data[i] == '"')
+            if (request.data[i] == '"' && !backslash)
             {
                 if (k == 2)
                 {
@@ -157,9 +155,32 @@ void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevi
                 }
                 k++;
             }
+            if (request.data[i] == '\\' && !backslash)
+            {
+                c++;
+                backslash = true;
+            }
+            else backslash = false;
         }
+        char* newcommand = new char[strlen(command) + 1 - c];
+        j = 0;
+        backslash = false;
+        for (size_t i = 0; i < strlen(command); i++)
+        {
+            if (command[i] == '\\' && !backslash)
+            {
+                backslash = true;
+            }
+            else
+            {
+                backslash = false;
+                newcommand[j] = command[i];
+                j++;
+            }
+        }
+        newcommand[j] = 0;
         Vector<const char*> options = {};
-        const char* resp = handleShell(command);
+        const char* resp = handleShell(newcommand);
         if (resp == NULL) return;
         const char* response = strcat("{\"response\":\"", strcat(resp, "\"}"));
         options.push("HTTP/1.1 200 OK");

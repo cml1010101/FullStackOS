@@ -53,7 +53,6 @@ void makeDHCPPacket(DHCPPacket* packet, uint8_t msgType, uint8_t* ip,
 }
 void dhcpDiscover(EthernetDevice* dev)
 {
-    qemu_printf("Discovering\n");
     uint8_t requestIP[4];
     uint8_t destIP[4];
     memset(requestIP, 0x0, 4);
@@ -95,7 +94,6 @@ void dhcpHandlePacket(DHCPPacket* packet, EthernetDevice* dev)
     uint8_t* options = packet->options + 4;
     if (packet->op == DHCP_REPLY)
     {
-        qemu_printf("DHCP recieved packets\n");
         uint8_t* type = (uint8_t*)getDHCPOptions(packet, 53);
         if(*type == 2)
         {
@@ -103,7 +101,6 @@ void dhcpHandlePacket(DHCPPacket* packet, EthernetDevice* dev)
         }
         else if (*type == 5)
         {
-            qemu_printf("Recieved dhcp address\n");
             setSourceIP((uint8_t*)&packet->your_ip);
         }
     }

@@ -54,6 +54,7 @@ void* malloc(size_t size);
 void free(void* ptr);
 void sleep(uint64_t millis);
 size_t strlen(const char* str);
+const char* substr(const char* str, size_t end);
 void switchEndian(void* dest, const void* src, size_t size);
 void join(uint64_t pid);
 inline uint16_t ntohs(uint16_t a)
