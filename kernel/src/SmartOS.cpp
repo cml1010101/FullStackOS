@@ -194,6 +194,14 @@ extern "C" const char* substr(const char* a, size_t end)
     memcpy(out, a, end);
     return out;
 }
+extern "C" const char* strapp(const char* a, char c)
+{
+    char* out = new char[strlen(a) + 2];
+    memcpy(out, a, strlen(a));
+    out[strlen(a)] = c;
+    out[strlen(a) + 1] = 0;
+    return out;
+}
 extern "C" void __cxa_pure_virtual()
 {
 }

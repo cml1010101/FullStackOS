@@ -51,6 +51,10 @@ extern "C" void kernel_main(BootData data)
     qemu_init();
     qemu_printf("Entered kernel.\n");
 #endif
+    initializeMMU(data.memoryMap, data.mapSize, data.descriptorSize);
+#ifdef __DEBUG__
+    qemu_printf("Initialized MMU.\n");
+#endif
     initializeGDT();
 #ifdef __DEBUG__
     qemu_printf("Initialized GDT.\n");
@@ -63,10 +67,6 @@ extern "C" void kernel_main(BootData data)
     initializePIT(100);
 #ifdef __DEBUG__
     qemu_printf("Initialized PIT.\n");
-#endif
-    initializeMMU(data.memoryMap, data.mapSize, data.descriptorSize);
-#ifdef __DEBUG__
-    qemu_printf("Initialized MMU.\n");
 #endif
     initializeHeap();
     initializeScheduler();

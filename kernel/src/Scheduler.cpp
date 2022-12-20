@@ -16,17 +16,25 @@ Thread::Thread(void(*entry)(), const char* name, bool user)
     dpl = user ? 3 : 0;
     this->entry = entry;
     this->name = name;
+    dir = user ? kernelDirectory->clone() : kernelDirectory;
     memset(&state, 0, sizeof(state));
     state.rsp = kmalloc_a(0x1000) + 0xFF8;
+    if (user)
+    {
+        dir->mapPage(state.rsp, state.rsp, MMU_PRESENT | MMU_RW | MMU_USER);
+    }
+    else
+    {
+        dir->mapPage(state.rsp, state.rsp, MMU_PRESENT | MMU_RW);
+    }
     *(uint64_t*)state.rsp = (uint64_t)_kill;
-    state.cs = user ? 0x1B : 0x8;
-    state.ds = state.es = state.fs = state.gs = state.ss = user ? 0x23 : 0x10;
+    state.cs = (user ? 0x1B : 0x8);
+    state.ds = state.es = state.fs = state.gs = state.ss = (user ? 0x23 : 0x10);
     state.rip = (uint64_t)entry;
     state.rflags = 0x202;
     asleep = false;
     joined = false;
     done = false;
-    dir = kernelDirectory;
     heap = kernelHeap;
     next = NULL;
 }

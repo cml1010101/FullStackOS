@@ -1,5 +1,7 @@
 #include <Shell.h>
 #include <SmartOS.h>
+#include <MMU.h>
+#include <Scheduler.h>
 uint64_t getIndexOf(const char* input, char c)
 {
     size_t i = 0;
@@ -78,6 +80,23 @@ const char* handleShell(const char* input)
             if (i != options.size() - 1) str = strcat(str, " ");
         }
         return str;
+    }
+    else if (fileSystems[0]->exists(strcat("/bin/", options[0])))
+    {
+        File* file = fileSystems[0]->open(strcat("/bin/", options[0]));
+        size_t fileSize = file->getSize();
+        uint8_t* filedata = (uint8_t*)kmalloc_a(sizeof(filedata));
+        file->read(filedata, fileSize);
+        Thread* thread = new Thread((void(*)())filedata, options[0], false);
+        thread->dir->map((uint64_t)filedata, (uint64_t)filedata, fileSize,
+            MMU_RW | MMU_PRESENT | MMU_USER);
+        addThread(thread);
+        join(thread->pid);
+        return strcat(strcat("Executable: '", options[0]), "' executed successfully");
+    }
+    else
+    {
+        return strcat(strcat("Could not find executable '", options[0]), "'");
     }
     return NULL;
 }

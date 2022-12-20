@@ -6,6 +6,7 @@ all: boot/bootx64.efi kernel/kernel.elf disk.img
 	mcopy -i disk.img res/style.css ::/RES/ -Do
 	mcopy -i disk.img res/console.htm ::/RES/ -Do
 	mcopy -i disk.img res/console.js ::/RES/ -Do
+	mcopy -i disk.img bin/test ::/BIN/ -Do
 	sudo qemu-system-x86_64 -s -S -serial stdio -d cpu_reset -cpu qemu64 -drive \
 		if=pflash,format=raw,unit=0,file=/usr/share/OVMF/OVMF_CODE.fd,readonly=on \
 		-drive if=pflash,format=raw,unit=1,file=/usr/share/OVMF/OVMF_VARS.fd -hda disk.img \

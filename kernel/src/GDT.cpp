@@ -1,4 +1,5 @@
 #include <GDT.h>
+#include <MMU.h>
 extern "C" void load_gdt(SystemPointer* address, uint64_t cs, uint64_t ds, uint64_t es,
     uint64_t fs, uint64_t gs, uint64_t ss);
 GDT gdt;
@@ -48,19 +49,25 @@ GDTSystemEntry::GDTSystemEntry(uint64_t base, uint32_t limit, uint8_t access, ui
 }
 GDT::GDT()
 {
+    memset(&tss, 0, sizeof(tss));
+    tss.rsp0 = kmalloc_a(0x10000) + 0x10000;
     gdtEntries[0] = GDTEntry();
     gdtEntries[1] = GDTEntry(0, 0xFFFFF, 0x9A, 0xA);
     gdtEntries[2] = GDTEntry(0, 0xFFFFF, 0x92, 0xC);
+    gdtEntries[3] = GDTEntry(0, 0xFFFFF, 0xFA, 0xA);
+    gdtEntries[4] = GDTEntry(0, 0xFFFFF, 0xF2, 0xC);
+    gdtSystemEntries[0] = GDTSystemEntry((uint64_t)&tss, sizeof(TSS), 0x89, 0x0);
 }
 void GDT::load(uint64_t cs, uint64_t ds, uint64_t es, uint64_t fs, uint64_t gs, uint64_t ss)
 {
     SystemPointer address;
     address.base = (uint64_t)gdtEntries;
-    address.limit = sizeof(gdtEntries) - 1;
+    address.limit = sizeof(gdtEntries) + sizeof(gdtSystemEntries) - 1;
 #ifdef __DEBUG__
     qemu_printf("Address base: 0x%x\nAddress limit 0x%x\n", address.base, address.limit);
 #endif
     load_gdt(&address, cs, ds, es, fs, gs, ss);
+    asm volatile ("ltr %%ax":: "a"(sizeof(gdtEntries)));
 }
 void initializeGDT()
 {

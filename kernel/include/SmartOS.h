@@ -49,6 +49,7 @@ void memset(void* dest, uint8_t val, size_t count);
 void memcpy(void* dest, const void* src, size_t count);
 int memcmp(const void* a, const void* b, size_t count);
 int strcmp(const char* a, const char* b);
+const char* strapp(const char* a, char c);
 const char* strcat(const char* a, const char* b);
 void* malloc(size_t size);
 void free(void* ptr);
@@ -200,6 +201,104 @@ public:
     inline size_t size()
     {
         return length;
+    }
+};
+template<typename T, typename R>
+class Map
+{
+private:
+    struct MapItem
+    {
+        T key;
+        R val;
+        MapItem* next;
+    };
+    MapItem* first;
+    int (*compare)(T a, T b);
+    size_t length;
+public:
+    inline Map()
+    {
+        first = NULL;
+        length = 0;
+        compare = [](T a, T b) { return a == b ? 0 : 1; };
+    }
+    inline void setCompare(int (*compare)(T a, T b))
+    {
+        this->compare = compare;
+    }
+    inline R operator[](T key) const
+    {
+        MapItem* item = first;
+        while (item->next)
+        {
+            if (compare(item->key, key) == 0)
+            {
+                return item->val;
+            }
+            item = item->next;
+        }
+        return item->val;
+    }
+    inline R& operator[](T key)
+    {
+        MapItem* item = first;
+        while (item->next)
+        {
+            if (compare(item->key, key) == 0)
+            {
+                return item->val;
+            }
+            item = item->next;
+        }
+        return item->val;
+    }
+    inline void push(T key, R val)
+    {
+        if (length != 0)
+        {
+            MapItem* item = first;
+            while (item->next) item = item->next;
+            item->next = new MapItem;
+            item->next->key = key;
+            item->next->val = val;
+            item->next->next = NULL;
+        }
+        else
+        {
+            first = new MapItem;
+            first->key = key;
+            first->val = val;
+            first->next = NULL;
+        }
+        length++;
+    }
+    inline size_t size()
+    {
+        return length;
+    }
+    inline MapItem getPair(size_t index)
+    {
+        MapItem* item = first;
+        for (size_t i = 0; i < index; i++)
+        {
+            item = item->next;
+        }
+        return *item;
+    }
+    inline bool has(T key)
+    {
+        if (length == 0) return false;
+        MapItem* item = first;
+        while (item)
+        {
+            if (compare(item->key, key) == 0)
+            {
+                return true;
+            }
+            item = item->next;
+        }
+        return false;
     }
 };
 class Driver

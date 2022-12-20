@@ -1,5 +1,6 @@
 #include <HTTP.h>
 #include <Shell.h>
+#include <JSON.h>
 char* htmlData;
 size_t htmlSize, notFoundSize, styleSize, scriptSize, consoleSize;
 char* nfData, *style;
@@ -134,55 +135,20 @@ void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevi
             free(str);
         }
     }
-    else
+    else if (request.type == RequestType::POST)
     {
         size_t j = 0, k = 0, c = 0;
-        char* command;
-        bool backslash;
-        for (size_t i = 0; i < request.dataLength; i++)
-        {
-            if (request.data[i] == '"' && !backslash)
-            {
-                if (k == 2)
-                {
-                    j = i + 1;
-                }
-                else if (k == 3)
-                {
-                    command = new char[i - j + 1];
-                    command[i - j] = 0;
-                    memcpy(command, request.data + j, i - j);
-                }
-                k++;
-            }
-            if (request.data[i] == '\\' && !backslash)
-            {
-                c++;
-                backslash = true;
-            }
-            else backslash = false;
-        }
-        char* newcommand = new char[strlen(command) + 1 - c];
-        j = 0;
-        backslash = false;
-        for (size_t i = 0; i < strlen(command); i++)
-        {
-            if (command[i] == '\\' && !backslash)
-            {
-                backslash = true;
-            }
-            else
-            {
-                backslash = false;
-                newcommand[j] = command[i];
-                j++;
-            }
-        }
-        newcommand[j] = 0;
+        char* tmp = new char[request.dataLength + 1];
+        tmp[request.dataLength] = 0;
+        memcpy(tmp, request.data, request.dataLength);
+        JSONNode node = parseJSON(tmp);
+        const char* command = node.getProperty<const char*>("command");
         Vector<const char*> options = {};
-        const char* resp = handleShell(newcommand);
+        const char* resp = handleShell(command);
         if (resp == NULL) return;
-        const char* response = strcat("{\"response\":\"", strcat(resp, "\"}"));
+        JSONNode responseNode;
+        responseNode.setProperty("response", resp);
+        const char* response = responseNode.toString();
         options.push("HTTP/1.1 200 OK");
         options.push("Date: Mon, 27 Jul 2009 12:28:53 GMT");
         options.push("Server: Apache/2.2.14 (Win32)");
