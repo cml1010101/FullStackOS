@@ -21,11 +21,11 @@ Thread::Thread(void(*entry)(), const char* name, bool user)
     state.rsp = kmalloc_a(0x1000) + 0xFF8;
     if (user)
     {
-        dir->mapPage(state.rsp, state.rsp, MMU_PRESENT | MMU_RW | MMU_USER);
+        dir->mapPage(state.rsp - 0xFF8, state.rsp - 0xFF8, MMU_PRESENT | MMU_RW | MMU_USER);
     }
     else
     {
-        dir->mapPage(state.rsp, state.rsp, MMU_PRESENT | MMU_RW);
+        dir->mapPage(state.rsp - 0xFF8, state.rsp - 0xFF8, MMU_PRESENT | MMU_RW);
     }
     *(uint64_t*)state.rsp = (uint64_t)_kill;
     state.cs = (user ? 0x1B : 0x8);

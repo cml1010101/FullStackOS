@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stddef.h>
+#define PANIC(message) __panic(message, __FILE__, __LINE__)
 #ifdef __cplusplus
 extern "C"
 {
@@ -58,6 +59,11 @@ size_t strlen(const char* str);
 const char* substr(const char* str, size_t end);
 void switchEndian(void* dest, const void* src, size_t size);
 void join(uint64_t pid);
+inline void __panic(const char* message, const char* filename, uint64_t fileline)
+{
+    qemu_printf("%s at %s:%d\n", message, filename, fileline);
+    asm volatile ("cli; hlt; jmp .");
+}
 inline uint16_t ntohs(uint16_t a)
 {
     return (a >> 8) | ((a & 0xFF) << 8);
