@@ -67,6 +67,7 @@ const char* makeHTTPPacket(Vector<const char*> packetOptions, const char* conten
 void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevice* dev)
 {
     HTTPRequest request = parseHTTPRequest(data, len);
+    qemu_printf("Recieved: %s\n", data);
     if (request.type == RequestType::GET)
     {
         if (strcmp(request.requestLocation, "/") == 0)
@@ -165,12 +166,12 @@ void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevi
 }
 void initializeHTMLFrontend()
 {
-    File* file = fileSystems[0]->open("/RES/INDEX.HTM");
+    File* file = fileSystems[0]->open("/res/index.htm");
     htmlSize = file->getSize();
     htmlData = new char[htmlSize + 1];
     file->read(htmlData, htmlSize);
     htmlData[htmlSize] = 0;
-    file = fileSystems[0]->open("/RES/ERROR.HTM");
+    file = fileSystems[0]->open("/res/error.htm");
     notFoundSize = file->getSize();
     nfData = new char[notFoundSize + 1];
     file->read(nfData, notFoundSize);

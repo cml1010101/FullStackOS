@@ -43,5 +43,16 @@ struct __attribute__((packed)) DirectoryEntry
     uint16_t clusterLow;
     uint32_t size;
 };
+struct __attribute__((packed)) LongFileName
+{
+    uint8_t index;
+    uint16_t firstSequence[5];
+    uint8_t attribute;
+    uint8_t longEntryType;
+    uint8_t checksum;
+    uint16_t secondSequence[6];
+    uint16_t rsv;
+    uint16_t finalSequence[2];
+};
 #endif
 #endif

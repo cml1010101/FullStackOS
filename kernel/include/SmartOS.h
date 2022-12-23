@@ -58,6 +58,16 @@ size_t strlen(const char* str);
 const char* substr(const char* str, size_t end);
 void switchEndian(void* dest, const void* src, size_t size);
 void join(uint64_t pid);
+inline const char* lower(const char* str)
+{
+    char* newstr = new char[strlen(str) + 1];
+    for (size_t i = 0; i < strlen(str); i++)
+    {
+        newstr[i] = (str[i] >= 'A' && str[i] <= 'Z') ? (str[i] + ('a' - 'A')) : str[i];
+    }
+    newstr[strlen(str)] = 0;
+    return newstr;
+}
 inline uint16_t ntohs(uint16_t a)
 {
     return (a >> 8) | ((a & 0xFF) << 8);

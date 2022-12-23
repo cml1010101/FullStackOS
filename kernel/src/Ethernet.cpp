@@ -23,6 +23,7 @@ void initializeEthernet()
         {
             EthernetDevice* dev;
             ethernetDevices.push(dev = new RTL8139(&pciDevices[i]));
+            qemu_printf("Sending discover request\n");
             dhcpDiscover(dev);
         }
         if (pciDevices[i].getDeviceID() == E1000_DEV)

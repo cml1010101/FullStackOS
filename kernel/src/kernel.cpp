@@ -99,5 +99,8 @@ extern "C" void kernel_main(BootData data)
     while (getSourceIP()[0] == 0);
     qemu_printf("DHCP Server gave IPV4: %d.%d.%d.%d\n", getSourceIP()[0], getSourceIP()[1],
         getSourceIP()[2], getSourceIP()[3]);
+    auto files = fileSystems[0]->list("/res/");
+    for (size_t i = 0; i < files.size(); i++)
+        qemu_printf("%s\n", files[i]->path);
     for (;;);
 }

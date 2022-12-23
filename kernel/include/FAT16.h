@@ -24,7 +24,7 @@ private:
     void readCluster(uint16_t idx, void* buffer);
     void writeCluster(uint16_t idx, const void* buffer);
     void getEntry(uint16_t idx, const char* fname);
-    uint16_t searchDirectory(uint16_t cluster, const char* fatname, size_t* size);
+    uint16_t searchDirectory(uint16_t cluster, const char* name, size_t* size);
     void read(File* metadata, void* dest, size_t size);
     void write(File* metadata, const void* src, size_t size);
 public:

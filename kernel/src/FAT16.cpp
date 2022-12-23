@@ -94,26 +94,19 @@ bool FAT16::exists(const char* path)
     {
         if (path[i] == '/')
         {
-            char fatFilename[11];
-            char filename[13];
-            filename[12] = 0;
+            char* filename = new char[i - j + 1];
+            filename[i - j] = 0;
             memcpy(filename, &path[j], i - j);
-            memset(filename + (i - j), 0, 11 - (i - j));
-            filenameToFAT(fatFilename, filename);
-            cluster = searchDirectory(cluster, fatFilename, NULL);
+            cluster = searchDirectory(cluster, filename, NULL);
             if (cluster >= 0xFFF7) return false;
             j = i + 1;
         }
         i++;
     }
-    char fatFilename[12];
-    fatFilename[11] = 0;
-    char filename[13];
-    filename[12] = 0;
+    char* filename = new char[i - j + 1];
+    filename[i - j] = 0;
     memcpy(filename, &path[j], i - j);
-    memset(filename + (i - j), 0, 11 - (i - j));
-    filenameToFAT(fatFilename, filename);
-    cluster = searchDirectory(cluster, fatFilename, NULL);
+    cluster = searchDirectory(cluster, filename, NULL);
     return cluster < 0xFFF7;
 }
 void FAT16::read(File* file, void* dest, size_t size)
@@ -185,9 +178,10 @@ void FAT16::write(File* file, const void* src, size_t size)
         endPos - readPos);
     writeCluster(startCluster, clusterBuffer);
 }
-uint16_t FAT16::searchDirectory(uint16_t cluster, const char* fatname, size_t* size)
+uint16_t FAT16::searchDirectory(uint16_t cluster, const char* name, size_t* size)
 {
     DirectoryEntry* entries = (DirectoryEntry*)malloc(16 * sectorsPerCluster * sizeof(DirectoryEntry));
+    const char* currentFileName = "";
     while (cluster < 0xFFF7)
     {
         readCluster(cluster, entries);
@@ -195,10 +189,35 @@ uint16_t FAT16::searchDirectory(uint16_t cluster, const char* fatname, size_t* s
         {
             if (entries[i].name[0] == 0) return 0xFFF8;
             if (entries[i].name[0] == 0xE5) continue;
-            if (memcmp(entries[i].name, fatname, 11) == 0)
+            if (entries[i].attr == 0x0F)
             {
-                if (size) *size = entries[i].size;
-                return entries[i].clusterLow;
+                LongFileName* lfn = (LongFileName*)&entries[i];
+                char tmp[14];
+                for (size_t j = 0; j < 5; j++)
+                    tmp[j] = lfn->firstSequence[j] & 0xFF;
+                for (size_t j = 0; j < 6; j++)
+                    tmp[5 + j] = lfn->secondSequence[j] & 0xFF;
+                tmp[11] = lfn->finalSequence[0] & 0xFF;
+                tmp[12] = lfn->finalSequence[1] & 0xFF;
+                tmp[13] = 0;
+                currentFileName = strcat(tmp, currentFileName);
+            }
+            else
+            {
+                char fn[13];
+                fatToFilename(fn, entries[i].name);
+                if (strcmp(currentFileName, "") == 0)
+                    currentFileName = fn;
+                qemu_printf("Comparing %s to %s\n", lower(currentFileName), name);
+                if (strcmp(name, lower(currentFileName)) == 0)
+                {
+                    if (size) *size = entries[i].size;
+                    return entries[i].clusterLow;
+                }
+                else
+                {
+                    currentFileName = "";
+                }
             }
         }
         cluster = readFAT(cluster);
@@ -207,6 +226,7 @@ uint16_t FAT16::searchDirectory(uint16_t cluster, const char* fatname, size_t* s
 }
 File* FAT16::open(const char* path)
 {
+    qemu_printf("Opening file\n");
     if (path[0] == '/') path++;
     uint64_t cluster = 0x1;
     size_t i = 0, j = 0;
@@ -215,27 +235,21 @@ File* FAT16::open(const char* path)
     {
         if (path[i] == '/')
         {
-            char fatFilename[11];
-            char filename[13];
-            filename[12] = 0;
+            char* filename = new char[i - j + 1];
+            filename[i - j] = 0;
             memcpy(filename, &path[j], i - j);
-            memset(filename + (i - j), 0, 11 - (i - j));
-            filenameToFAT(fatFilename, filename);
-            cluster = searchDirectory(cluster, fatFilename, &lastSize);
+            cluster = searchDirectory(cluster, filename, &lastSize);
             j = i + 1;
         }
         i++;
     }
-    char fatFilename[12];
-    fatFilename[11] = 0;
-    char filename[13];
-    filename[12] = 0;
+    char* filename = new char[i - j + 1];
+    filename[i - j] = 0;
     memcpy(filename, &path[j], i - j);
-    memset(filename + (i - j), 0, 11 - (i - j));
-    filenameToFAT(fatFilename, filename);
-    cluster = searchDirectory(cluster, fatFilename, &lastSize);
+    cluster = searchDirectory(cluster, filename, &lastSize);
     uint32_t* clusterPtr = new uint32_t;
     *clusterPtr = (uint32_t)cluster;
+    qemu_printf("Opened file\n");
     return new File(this, clusterPtr, lastSize, path);
 }
 FAT16::FAT16(StorageDevice* dev, size_t offset)
@@ -260,40 +274,57 @@ Vector<File*> FAT16::list(const char* path)
     if (path[0] == '/') path++;
     uint64_t cluster = 0x1;
     size_t i = 0, j = 0;
-    DirectoryEntry* entries = new DirectoryEntry[32 * sectorsPerCluster];
+    DirectoryEntry* entries = new DirectoryEntry[16 * sectorsPerCluster];
     size_t lastSize;
     while (path[i])
     {
         if (path[i] == '/')
         {
-            char fatFilename[11];
-            char filename[13];
-            filename[12] = 0;
+            char* filename = new char[i - j + 1];
+            filename[i - j] = 0;
             memcpy(filename, &path[j], i - j);
-            memset(filename + (i - j), 0, 11 - (i - j));
-            filenameToFAT(fatFilename, filename);
-            cluster = searchDirectory(cluster, fatFilename, &lastSize);
+            cluster = searchDirectory(cluster, filename, NULL);
             j = i + 1;
         }
         i++;
     }
     Vector<File*> files = Vector<File*>();
+    const char* currentFileName = "";
     while (cluster < 0xFFF7)
     {
         readCluster(cluster, entries);
-        for (size_t i = 0; i < 32 * sectorsPerCluster; i++)
+        for (size_t i = 0; i < 16 * sectorsPerCluster; i++)
         {
             if (entries[i].name[0] == 0) break;
             if (entries[i].name[0] == 0xE5) continue;
-            char fname[12];
-            fatToFilename(fname, entries[i].name);
-            char* newPath = new char[strlen(path) + strlen(fname) + 2];
-            memcpy(newPath, path, strlen(path));
-            newPath[strlen(path)] = '/';
-            memcpy(newPath + strlen(path), fname, strlen(fname) + 1);
-            uint32_t* clusterPtr = new uint32_t;
-            *clusterPtr = cluster;
-            files.push(new File(this, clusterPtr, entries[i].size, newPath));
+            if (entries[i].attr == 0x0F)
+            {
+                LongFileName* lfn = (LongFileName*)&entries[i];
+                char tmp[14];
+                for (size_t j = 0; j < 5; j++)
+                    tmp[j] = lfn->firstSequence[j] & 0xFF;
+                for (size_t j = 0; j < 6; j++)
+                    tmp[5 + j] = lfn->secondSequence[j] & 0xFF;
+                tmp[11] = lfn->finalSequence[0] & 0xFF;
+                tmp[12] = lfn->finalSequence[1] & 0xFF;
+                tmp[13] = 0;
+                currentFileName = strcat(tmp, currentFileName);
+            }
+            else
+            {
+                char fn[13];
+                fatToFilename(fn, entries[i].name);
+                if (strcmp(currentFileName, "") == 0)
+                    currentFileName = fn;
+                char* newPath = new char[strlen(path) + strlen(currentFileName) + 2];
+                memcpy(newPath, path, strlen(path));
+                newPath[strlen(path)] = '/';
+                memcpy(newPath + strlen(path) + 1, currentFileName, strlen(currentFileName) + 1);
+                uint32_t* clusterPtr = new uint32_t;
+                *clusterPtr = entries[i].clusterLow;
+                files.push(new File(this, clusterPtr, entries[i].size, newPath));
+                currentFileName = "";
+            }
         }
         cluster = readFAT(cluster);
     }

@@ -53,11 +53,14 @@ TCPConnection* getTCP(TCPHeader* header, uint8_t senderIP[4])
 {
     for (size_t i = 0; i < tcpConnections.size(); i++)
         if (tcpConnections[i]->localPort == ntohs(header->destPort)
-            && tcpConnections[i]->remotePort == ntohs(header->sourcePort)) return tcpConnections[i];
+            && tcpConnections[i]->remotePort == ntohs(header->sourcePort)
+            && memcmp(tcpConnections[i]->destIP, senderIP, 4) == 0)
+                return tcpConnections[i];
     return newTCP(ntohs(header->destPort), senderIP, ntohs(header->sourcePort));
 }
 void tcpSend(TCPConnection* conn, EthernetDevice* dev, uint16_t flags, void* data, size_t len)
 {
+    qemu_printf("Sending %d bytes (FLAGS: 0x%x)\n", len, flags);
     TCPHeader* header = (TCPHeader*)malloc(sizeof(TCPHeader) + (flags & TCP_SYN ? 4 : 0) + len);
     memset(header, 0, sizeof(TCPHeader));
     header->flags = flags;
@@ -111,6 +114,7 @@ void closeTCP(TCPConnection* conn, EthernetDevice* dev)
 }
 void tcpRecieve(TCPHeader* packet, uint8_t ip4[4], size_t totalSize, EthernetDevice* dev)
 {
+    qemu_printf("TCP Recieved: ");
     size_t packetLen = totalSize - sizeof(TCPHeader);
     TCPConnection* conn = getTCP(packet, ip4);
     conn->sequenceNumber = htonl(packet->ackNumber);
@@ -118,11 +122,13 @@ void tcpRecieve(TCPHeader* packet, uint8_t ip4[4], size_t totalSize, EthernetDev
         ntohs(packet->flags) & TCP_SYN) ? 1 : packetLen);
     if ((ntohs(packet->flags) & (TCP_ACK | TCP_SYN)) == (TCP_ACK | TCP_SYN))
     {
+        qemu_printf("[SYN|ACK]\n");
         conn->state = TCPState::ESTABLISHED;
         tcpSendAck(conn, dev);
     }
     else if ((ntohs(packet->flags) & (TCP_ACK | TCP_PSH)) == (TCP_ACK | TCP_PSH))
     {
+        qemu_printf("[PSH|ACK]\n");
         for (size_t i = 0; i < tcpHandlers.size(); i++)
             if (tcpHandlers[i].portNo == ntohs(packet->destPort))
                 tcpHandlers[i].handler(conn, (uint8_t*)packet + ((ntohs(packet->flags) & 0xF000) >> 10), 
@@ -131,6 +137,7 @@ void tcpRecieve(TCPHeader* packet, uint8_t ip4[4], size_t totalSize, EthernetDev
     }
     else if ((ntohs(packet->flags) & (TCP_ACK | TCP_FIN)) == (TCP_ACK | TCP_FIN))
     {
+        qemu_printf("[FIN|ACK]\n");
         if (conn->state == TCPState::ESTABLISHED)
             tcpSendFinAck(conn, dev);
         else
@@ -139,13 +146,31 @@ void tcpRecieve(TCPHeader* packet, uint8_t ip4[4], size_t totalSize, EthernetDev
     }
     else if (ntohs(packet->flags) & (TCP_SYN))
     {
+        qemu_printf("[SYN]\n");
         conn->state = TCPState::ESTABLISHED;
         tcpSendSynAck(conn, dev);
+    }
+    else if (ntohs(packet->flags) & TCP_ACK)
+    {
+        qemu_printf("[ACK]\n");
+        conn->dataSent = true;
     }
 }
 void tcpSendData(TCPConnection* conn, const void* data, size_t len, EthernetDevice* dev)
 {
-    tcpSend(conn, dev, TCP_PSH | TCP_ACK, (void*)data, len);
+    qemu_printf("Sending %d bytes of data over TCP from %d to %d\n", len, conn->localPort,
+        conn->remotePort);
+    if (len > 1460)
+    {
+        for (size_t i = 0; i < len; i += 1460)
+        {
+            conn->dataSent = false;
+            tcpSend(conn, dev, TCP_PSH | TCP_ACK, (void*)data + i, (len - i) > 1460
+                ? 1460 : (len - i));
+            while (!conn->dataSent);
+        }
+    }
+    else tcpSend(conn, dev, TCP_PSH | TCP_ACK, (void*)data, len);
 }
 void initializeTCP()
 {

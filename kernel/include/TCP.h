@@ -47,12 +47,14 @@ struct TCPConnection
     uint8_t destIP[4];
     uint32_t sequenceNumber;
     uint32_t ackNumber;
+    volatile bool dataSent;
     TCPConnection() = default;
     inline TCPConnection(uint16_t localPort, uint16_t destPort, uint8_t destIP[4])
     {
         this->localPort = localPort;
         this->remotePort = destPort;
         memcpy(this->destIP, destIP, 4);
+        dataSent = false;
     }
 };
 struct TCPHandler

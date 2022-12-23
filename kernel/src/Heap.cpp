@@ -82,7 +82,7 @@ void* Heap::malloc(size_t size)
     {
         if (entry->checksum != calculateChecksum(entry))
         {
-            qemu_printf("Heap checksum invalid during 'malloc'. QUIT.\n");
+            qemu_printf("Heap checksum invalid during 'malloc(%d)'. QUIT.\n", size);
             summary();
             asm volatile ("cli; jmp .");
         }
@@ -90,7 +90,7 @@ void* Heap::malloc(size_t size)
     }
     if (entry->checksum != calculateChecksum(entry))
     {
-        qemu_printf("Heap checksum invalid during 'malloc'. QUIT.\n");
+        qemu_printf("Heap checksum invalid during 'malloc(%d)'. QUIT.\n", size);
         summary();
         asm volatile ("cli; jmp .");
     }
