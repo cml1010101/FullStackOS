@@ -1,4 +1,4 @@
-# SmartOS
+# FullStackOS
 
 This is a basic operating system that is in progress.
 
