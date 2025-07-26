@@ -54,6 +54,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     EFI_STATUS status;
     InitializeLib(ImageHandle, SystemTable);
     Print(L"Welcome to the Smart OS.\n");
+    for (;;);
     status = SystemTable->BootServices->SetWatchdogTimer(0, 0, 0, NULL);
     if (status) PANIC(status);
     Print(L"Loading filesystem.\n");
@@ -94,7 +95,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     {
         if (programHeaders[i].p_type == PT_LOAD)
         {
-            memcpy(programHeaders[i].p_vaddr, 
+            memcpy((void*)programHeaders[i].p_vaddr, 
                 (CHAR8*)kernelBuffer + programHeaders[i].p_offset, programHeaders[i].p_filesz);
             memset((void*)(programHeaders[i].p_vaddr + programHeaders[i].p_filesz), 0,
                 programHeaders[i].p_memsz - programHeaders[i].p_filesz);
@@ -135,7 +136,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
     Print(L"Loading memory map.\n");
     size_t numEntries, mapKey, memoryMapSize, descriptorSize, descriptorVersion;
     void* map;
-    map = LibMemoryMap(&numEntries, &mapKey, &descriptorSize, &descriptorVersion);
+    map = LibMemoryMap(&numEntries, &mapKey, &descriptorSize, (UINT32*)&descriptorVersion);
     memoryMapSize = descriptorSize * numEntries;
     Print(L"Entering kernel.\n");
     BootData data;

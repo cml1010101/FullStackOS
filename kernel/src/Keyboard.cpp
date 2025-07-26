@@ -32,6 +32,7 @@ void keyWrite(uint8_t cmd, uint8_t data)
 }
 void keyboardIRQ(CPURegisters* regs)
 {
+    (void)regs; // Unused parameter
     uint8_t pressed = 1;
     uint8_t key = inb(0x60);
     if (key & 0x80)

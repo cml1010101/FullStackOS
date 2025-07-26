@@ -230,12 +230,11 @@ void IDEDevice::readSectors(uint64_t lba, void* dest, size_t numSectors)
     {
         for (size_t i = 0; i < (numSectors & ~0xFF); i += 0x100)
         {
-            readSectors(lba + i, dest + i * 512, 0x100);
+            readSectors(lba + i, (void*)((uintptr_t)dest + i * 512), 0x100);
         }
         if (numSectors & 0xFF)
         {
-            readSectors(lba + (numSectors & ~0xFF), dest + (numSectors & ~0xFF) * 512,
-                numSectors & 0xFF);
+            readSectors(lba + (numSectors & ~0xFF), (void*)((uintptr_t)dest + (numSectors & ~0xFF) * 512), numSectors & 0xFF);
         }
     }
     else
@@ -302,7 +301,7 @@ void IDEDevice::readSectors(uint64_t lba, void* dest, size_t numSectors)
             for (size_t i = 0; i < sectors; i++)
             {
                 channel->poll(true);
-                for (size_t j = 0; j < 256; j++) ((uint16_t*)(dest + i * 512))[j] = inw(channel->base);
+                for (size_t j = 0; j < 256; j++) ((uint16_t*)((uintptr_t)dest + i * 512))[j] = inw(channel->base);
             }
             cmd = ATA_CMD_CACHE_FLUSH;
             if (mode == 2) cmd = ATA_CMD_CACHE_FLUSH_EXT;
@@ -335,7 +334,7 @@ void IDEDevice::readSectors(uint64_t lba, void* dest, size_t numSectors)
             for (size_t i = 0; i < sectors; i++)
             {
                 waitIDEIRQ();
-                asm volatile ("rep insw":: "c"(1024), "d"(channel->base), "D"(dest + i * 2048));
+                asm volatile ("rep insw":: "c"(1024), "d"(channel->base), "D"((void*)((uintptr_t)dest + i * 2048)));
             }
             waitIDEIRQ();
             while (channel->read(ATA_REG_STATUS) & (ATA_SR_BSY | ATA_SR_DRQ));
@@ -348,11 +347,11 @@ void IDEDevice::writeSectors(uint64_t lba, const void* src, size_t numSectors)
     {
         for (size_t i = 0; i < (numSectors & ~0xFF); i += 0x100)
         {
-            writeSectors(lba + i, src + i * 512, 0x100);
+            writeSectors(lba + i, (void*)((uintptr_t)src + i * 512), 0x100);
         }
         if (numSectors & 0xFF)
         {
-            writeSectors(lba + (numSectors & ~0xFF), src + (numSectors & ~0xFF) * 512,
+            writeSectors(lba + (numSectors & ~0xFF), (void*)((uintptr_t)src + (numSectors & ~0xFF) * 512),
                 numSectors & 0xFF);
         }
     }
@@ -420,7 +419,7 @@ void IDEDevice::writeSectors(uint64_t lba, const void* src, size_t numSectors)
             for (size_t i = 0; i < sectors; i++)
             {
                 channel->poll(true);
-                asm volatile ("rep outsw":: "c"(256), "d"(channel->base), "S"(src + i * 512));
+                asm volatile ("rep outsw":: "c"(256), "d"(channel->base), "S"((void*)((uintptr_t)src + i * 512)));
             }
             cmd = ATA_CMD_CACHE_FLUSH;
             if (mode == 2) cmd = ATA_CMD_CACHE_FLUSH_EXT;

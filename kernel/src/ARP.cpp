@@ -7,6 +7,7 @@ const uint8_t broadcastMAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 const uint8_t broadcastIP4[4] = {0xFF, 0xFF, 0xFF, 0xFF};
 void arpHandlePacket(ARPPacket* packet, size_t len, EthernetDevice* dev)
 {
+    (void)len; // Unused parameter
     uint8_t destHardwareAddr[6];
     uint8_t destProtocolAddr[4];
     memcpy(destHardwareAddr, packet->srcHardwareAddr, 6);

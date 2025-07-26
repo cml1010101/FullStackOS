@@ -130,6 +130,16 @@ void operator delete(void* ptr)
 {
     currentHeap->free(ptr);
 }
+void operator delete(void* ptr, size_t size)
+{
+    (void)size; // Unused parameter
+    currentHeap->free(ptr);
+}
+void operator delete[](void* ptr, size_t size)
+{
+    (void)size; // Unused parameter
+    currentHeap->free(ptr);
+}
 void operator delete[](void* ptr)
 {
     currentHeap->free(ptr);

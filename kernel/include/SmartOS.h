@@ -371,8 +371,10 @@ public:
     inline void read(void* dest, size_t size)
     {
         void* test = malloc(50001);
+        (void)test; // Prevent unused variable warning
         fileSystem->read(this, dest, size);
         test = malloc(50002);
+        (void)test; // Prevent unused variable warning
     }
     inline void write(const void* src, size_t size)
     {

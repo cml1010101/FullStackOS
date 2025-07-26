@@ -7,12 +7,12 @@ E1000* defaultE1000;
 void E1000::writeCommand(uint16_t addr, uint32_t val)
 {
     if (ioBase) outl(ioBase + addr, val);
-    else *(volatile uint32_t*)(mmioBase + addr) = val;
+    else *(volatile uint32_t*)((uintptr_t)(mmioBase + addr)) = val;
 }
 uint32_t E1000::readCommand(uint16_t addr)
 {
     if (ioBase) return inl(ioBase + addr);
-    else return *(volatile uint32_t*)(mmioBase + addr);
+    else return *(volatile uint32_t*)((uintptr_t)(mmioBase + addr));
 }
 bool E1000::detectEEProm()
 {
@@ -90,6 +90,7 @@ void E1000::enableInterrupt()
 }
 void e1000_interrupt(CPURegisters* regs)
 {
+    (void)regs; // Unused parameter
     if ((0xC0) & 0x80)
     {
         while (defaultE1000->rxDescs[defaultE1000->rxIdx].status & 0x1)
@@ -138,7 +139,6 @@ void E1000::sendPacket(Package* packet)
     txDescs[txIdx].length = packet->len;
     txDescs[txIdx].cmd = CMD_EOP | CMD_IFCS | CMD_RS;
     txDescs[txIdx].status = 0;
-    uint8_t oldIdx = txIdx;
     txIdx = (txIdx + 1) % E1000_NUM_TX_DESC;
     writeCommand(REG_TXDESCTAIL, txIdx);   
     while(!(txDescs[txIdx].status & 0xff));

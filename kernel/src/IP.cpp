@@ -18,7 +18,6 @@ uint8_t flipByte(uint8_t byte, int num_bits)
 uint16_t ip_calculate_checksum(IPPacket * packet) {
     int arraySize = sizeof(IPPacket) / 2;
     uint16_t* array = (uint16_t*)packet;
-    uint8_t* array2 = (uint8_t*)packet;
     uint32_t sum = 0;
     for (int i = 0; i < arraySize; i++)
     {
@@ -49,7 +48,6 @@ void ipSendPacket(uint8_t* destIP, void* data, size_t len, uint8_t protocol,
     memcpy((uint8_t*)packet + sizeof(IPPacket), data, len);
     packet->length = ntohs(len + sizeof(IPPacket));
     packet->headerChecksum = ntohs(ip_calculate_checksum(packet));
-    int counter = 3;
     asm volatile ("sti");
     if (!arpHas(destIP)) arpSendPacket(zeroHardware, destIP, dev);
     while (!arpHas(destIP));

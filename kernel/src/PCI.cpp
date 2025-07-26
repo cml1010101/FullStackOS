@@ -45,7 +45,6 @@ uint32_t PCIDevice::getBar(size_t bar)
     uint32_t lbus  = (uint32_t)bus;
     uint32_t lslot = (uint32_t)slot;
     uint32_t lfunc = (uint32_t)func;
-    uint16_t tmp = 0;
     address = (uint32_t)((lbus << 16) | (lslot << 11) | (lfunc << 8) | ((0x10 + bar * 4) & 0xFC) 
         | ((uint32_t)0x80000000));
     outl(0xCF8, address);

@@ -6,3 +6,4 @@
 *.json
 *.sym
 *.log
+build/

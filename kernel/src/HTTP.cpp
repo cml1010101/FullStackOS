@@ -138,7 +138,6 @@ void httpHandler(TCPConnection* conn, const void* data, size_t len, EthernetDevi
     }
     else if (request.type == RequestType::POST)
     {
-        size_t j = 0, k = 0, c = 0;
         char* tmp = new char[request.dataLength + 1];
         tmp[request.dataLength] = 0;
         memcpy(tmp, request.data, request.dataLength);

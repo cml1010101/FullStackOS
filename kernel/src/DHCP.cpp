@@ -91,7 +91,6 @@ void* getDHCPOptions(DHCPPacket* packet, uint8_t type) {
 }
 void dhcpHandlePacket(DHCPPacket* packet, EthernetDevice* dev)
 {
-    uint8_t* options = packet->options + 4;
     if (packet->op == DHCP_REPLY)
     {
         uint8_t* type = (uint8_t*)getDHCPOptions(packet, 53);

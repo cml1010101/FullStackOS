@@ -111,7 +111,7 @@ bool FAT16::exists(const char* path)
 }
 void FAT16::read(File* file, void* dest, size_t size)
 {
-    void* tmp = malloc(512);
+    // void* tmp = malloc(512);
     size_t startCluster = *(uint32_t*)file->metadata;
     size_t clusterIdx = 0;
     while (file->position > ((clusterIdx + 1) * sectorsPerCluster * 512))
@@ -128,19 +128,19 @@ void FAT16::read(File* file, void* dest, size_t size)
     }
     size_t readPos = file->position;
     size_t writePos = 0;
-    tmp = malloc(512);
+    // tmp = malloc(512);
     uint8_t* clusterBuffer = new uint8_t[512 * sectorsPerCluster];
     while (startCluster != endCluster)
     {
         readCluster(startCluster, clusterBuffer);
-        memcpy(dest + writePos, clusterBuffer + (readPos % (sectorsPerCluster * 512)),
+        memcpy((void*)((uintptr_t)dest + writePos), (void*)((uintptr_t)clusterBuffer + (readPos % (sectorsPerCluster * 512))),
             (sectorsPerCluster * 512) - (readPos % (sectorsPerCluster * 512)));
         writePos += (sectorsPerCluster * 512) - (readPos % (sectorsPerCluster * 512));
         readPos += (sectorsPerCluster * 512) - (readPos % (sectorsPerCluster * 512));
         startCluster = readFAT(startCluster);
     }
     readCluster(startCluster, clusterBuffer);
-    memcpy(dest + writePos, clusterBuffer + (readPos % (sectorsPerCluster * 512)),
+    memcpy((void*)((uintptr_t)dest + writePos), (void*)((uintptr_t)clusterBuffer + (readPos % (sectorsPerCluster * 512))),
         endPos - readPos);
     free(clusterBuffer);
 }
@@ -164,7 +164,7 @@ void FAT16::write(File* file, const void* src, size_t size)
     while (startCluster != endCluster)
     {
         readCluster(startCluster, clusterBuffer);
-        memcpy(clusterBuffer + (readPos % (sectorsPerCluster * 512)), src + writePos,
+        memcpy(clusterBuffer + (readPos % (sectorsPerCluster * 512)), (void*)((uintptr_t)src + writePos),
             (sectorsPerCluster * 512) - (readPos % (sectorsPerCluster * 512)));
         writeCluster(startCluster, clusterBuffer);
         writePos += (readPos % (sectorsPerCluster * 512));
@@ -174,7 +174,7 @@ void FAT16::write(File* file, const void* src, size_t size)
         startCluster = readFAT(startCluster);
     }
     readCluster(startCluster, clusterBuffer);
-    memcpy(clusterBuffer + (readPos % (sectorsPerCluster * 512)), src + writePos,
+    memcpy(clusterBuffer + (readPos % (sectorsPerCluster * 512)), (void*)((uintptr_t)src + writePos),
         endPos - readPos);
     writeCluster(startCluster, clusterBuffer);
 }
@@ -188,7 +188,7 @@ uint16_t FAT16::searchDirectory(uint16_t cluster, const char* name, size_t* size
         for (size_t i = 0; i < 16 * sectorsPerCluster; i++)
         {
             if (entries[i].name[0] == 0) return 0xFFF8;
-            if (entries[i].name[0] == 0xE5) continue;
+            if ((uint8_t)entries[i].name[0] == 0xE5) continue;
             if (entries[i].attr == 0x0F)
             {
                 LongFileName* lfn = (LongFileName*)&entries[i];
@@ -275,7 +275,6 @@ Vector<File*> FAT16::list(const char* path)
     uint64_t cluster = 0x1;
     size_t i = 0, j = 0;
     DirectoryEntry* entries = new DirectoryEntry[16 * sectorsPerCluster];
-    size_t lastSize;
     while (path[i])
     {
         if (path[i] == '/')
@@ -296,7 +295,7 @@ Vector<File*> FAT16::list(const char* path)
         for (size_t i = 0; i < 16 * sectorsPerCluster; i++)
         {
             if (entries[i].name[0] == 0) break;
-            if (entries[i].name[0] == 0xE5) continue;
+            if ((uint8_t)entries[i].name[0] == 0xE5) continue;
             if (entries[i].attr == 0x0F)
             {
                 LongFileName* lfn = (LongFileName*)&entries[i];

@@ -13,6 +13,7 @@ Package tmpPackage;
 uint32_t previousIdx;
 void RTL8139_interrupt(CPURegisters* regs)
 {
+    (void)regs; // Unused parameter
     defaultRTL8139->handle();
 }
 uint32_t RTL8139::readl(uint32_t reg)
@@ -87,7 +88,7 @@ RTL8139::RTL8139(PCIDevice* dev)
 #endif
     for (size_t i = 0; i < 4; i++)
     {
-        txDescs[i].buffer = (uint8_t*)(txDescs[i].buffer_phys = kmalloc_a(0x2000));
+        txDescs[i].buffer = (uint8_t*)((uintptr_t)(txDescs[i].buffer_phys = kmalloc_a(0x2000)));
         txDescs[i].packet_length = 0;
     }
     writeb(RTL_CONFIG1, 0);

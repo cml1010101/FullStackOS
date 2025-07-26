@@ -4,7 +4,6 @@
 uint16_t udpChecksum(UDPPacket * packet) {
     int arraySize = sizeof(UDPPacket) / 2;
     uint16_t* array = (uint16_t*)packet;
-    uint8_t* array2 = (uint8_t*)packet;
     uint32_t sum = 0;
     for (int i = 0; i < arraySize; i++)
     {
@@ -32,8 +31,7 @@ void udpSendPacket(uint8_t* destIP, uint16_t srcPort, uint16_t destPort, void* d
 void udpHandlePacket(UDPPacket* packet, EthernetDevice* dev)
 {
     uint16_t destPort = ntohs(packet->destPort);
-    uint16_t length = ntohs(packet->length);
-    if (ntohs(packet->destPort) == 68)
+    if (destPort == 68)
     {
         dhcpHandlePacket((DHCPPacket*)packet->data, dev);
     }

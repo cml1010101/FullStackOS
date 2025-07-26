@@ -19,8 +19,8 @@ uint16_t tcp_calculate_checksum(TCPHeader* packet, TCPConnection* conn, size_t d
     phdr->tcpLength = ntohs(totalLength);
     memcpy(phdr->destIP, conn->destIP, 4);
     memcpy(phdr->srcIP, getSourceIP(), 4);
-    memcpy(tmp + sizeof(TCPPseudoHeader), packet, sizeof(TCPHeader));
-    memcpy(tmp + sizeof(TCPPseudoHeader) + sizeof(TCPHeader), &packet[1], dataLength);
+    memcpy((void*)((uintptr_t)tmp + sizeof(TCPPseudoHeader)), packet, sizeof(TCPHeader));
+    memcpy((void*)((uintptr_t)tmp + sizeof(TCPPseudoHeader) + sizeof(TCPHeader)), &packet[1], dataLength);
     int arraySize = (sizeof(TCPHeader) + sizeof(TCPPseudoHeader) + dataLength + 1) / 2;
     uint16_t* array = (uint16_t*)tmp;
     uint32_t sum = 0;
@@ -165,7 +165,7 @@ void tcpSendData(TCPConnection* conn, const void* data, size_t len, EthernetDevi
         for (size_t i = 0; i < len; i += 1460)
         {
             conn->dataSent = false;
-            tcpSend(conn, dev, TCP_PSH | TCP_ACK, (void*)data + i, (len - i) > 1460
+            tcpSend(conn, dev, TCP_PSH | TCP_ACK, (void*)((uintptr_t)data + i), (len - i) > 1460
                 ? 1460 : (len - i));
             while (!conn->dataSent);
         }

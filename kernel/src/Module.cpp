@@ -4,6 +4,7 @@ Vector<Module> modules;
 extern PageDirectory* kernelDirectory;
 Module::Module(const void* data, size_t len)
 {
+    (void)len; // Unused parameter
     ModuleHeader* header = (ModuleHeader*)data;
     if (header->magic == 0xBEEFCAFE)
     {
@@ -61,6 +62,7 @@ Module::Module(const void* data, size_t len)
             {
                 Elf64_Shdr* strtab = (Elf64_Shdr*)&header->data[header->elfOffset
                     + elfHeader->e_shoff + shdr->sh_link * elfHeader->e_shentsize];
+                (void)strtab; // Unused variable TODO: Handle symbol table
             }
         }
         initializationEntry = (void(*)())elfHeader->e_entry;

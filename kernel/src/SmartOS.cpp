@@ -56,7 +56,7 @@ extern "C" void qemu_printf(const char* frmt, ...)
             }
             else if (*frmt == 'c')
             {
-                qemu_putc(va_arg(ls, char));
+                qemu_putc((char)va_arg(ls, int));
             }
         }
         else
